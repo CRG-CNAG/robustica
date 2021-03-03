@@ -4,11 +4,11 @@
 # Last Update: 2021-03-03
 # 
 
-from examples import sampledata
+from robustica.examples import sampledata
 import numpy as np
 import pandas as pd
 from sklearn.decomposition import FastICA
-from sklearn.cluster import DBSCAN
+from sklearn.cluster import DBSCAN, AgglomerativeClustering
 import multiprocessing as mp
 from scipy import stats, sparse
 
@@ -17,23 +17,53 @@ class Sastry():
     """
     special distance matrix with precomputed DBSCAN.
     """
-    def __init__(self, **kws):
+    def __init__(self, kws):
         self.clustering = DBSCAN(metric='precomputed', **kws)
     
     def fit(self, X):
         # compute similarity matrix
         dist = abs(np.dot(X,X.T)) # the input will be transposed
         dist[dist < .5] = 0
-        D = 1 - np.round(dist, 13) # floating point imprecision
+        D = 1 - dist
         
+        # correct floating point imprecision
+        D[D < 0] = 0
+        D[D > 1] = 0
+                
         # cluster
         self.clustering.fit(D)
         self.labels_ = self.clustering.labels_
     
     
-def Icasso():
-    pass
-
+class Icasso():
+    """
+    distance_threshold = 
+    
+    Example
+    -------
+    X = sampledata
+    clustering = Icasso(distance_threshold=0.8)
+    """
+    def __init__(self, kws={'distance_threshold':1.2,'n_clusters':None}):
+        self.clustering = AgglomerativeClustering(affinity='precomputed', linkage='average', **kws)
+        
+    def fit(self, X):
+        # compute dissimilarity matrix
+        corr = np.abs(np.corrcoef(X))
+        D = 1 - corr
+        
+        # correct floating point imprecision
+        D[D < 0] = 0
+        D[D > 1] = 0
+        
+        # continue
+        D = np.sqrt(D)
+        
+        # cluster
+        self.clustering.fit(D)
+        self.labels_ = self.clustering.labels_
+        
+        
         
 class RobustICA():
     """
@@ -158,7 +188,7 @@ class RobustICA():
         
         # initialize clustering function
         self._prep_cluster_func()
-        self.clustering = self.cluster_func(**self.robust_kws)
+        self.clustering = self.cluster_func(self.robust_kws)
         
     
     def _run_ica(self, X):
@@ -204,7 +234,7 @@ class RobustICA():
         S = []
         A = []
         sumstats = []
-        labels = np.array(self.clustering.labels_)
+        labels = self.clustering.labels_
         for label in np.unique(labels):
             # subset
             idx = labels == label

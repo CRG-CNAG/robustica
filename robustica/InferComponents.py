@@ -4,7 +4,7 @@
 # Last Update: 2021-03-03
 # 
 
-from examples import sampledata
+from robustica.examples import sampledata
 from sklearn.decomposition import PCA
 
 class InferComponents():

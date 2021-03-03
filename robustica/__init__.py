@@ -1,3 +1,3 @@
-from RobustICA import *
-from examples import *
-from EstimateComponents import *
+from .RobustICA import *
+from .examples import *
+from .InferComponents import *
