@@ -17,7 +17,7 @@ class Sastry():
     """
     special distance matrix with precomputed DBSCAN.
     """
-    def __init__(self, kws):
+    def __init__(self, **kws):
         self.clustering = DBSCAN(metric='precomputed', **kws)
     
     def fit(self, X):
@@ -43,8 +43,9 @@ class Icasso():
     -------
     X = sampledata
     clustering = Icasso(distance_threshold=0.8)
+    ={'distance_threshold':1.2,'n_clusters':None}
     """
-    def __init__(self, kws={'distance_threshold':1.2,'n_clusters':None}):
+    def __init__(self, **kws):
         self.clustering = AgglomerativeClustering(affinity='precomputed', linkage='average', **kws)
         
     def fit(self, X):
@@ -188,7 +189,7 @@ class RobustICA():
         
         # initialize clustering function
         self._prep_cluster_func()
-        self.clustering = self.cluster_func(self.robust_kws)
+        self.clustering = self.cluster_func(**self.robust_kws)
         
     
     def _run_ica(self, X):
