@@ -2,40 +2,43 @@
 # Author: Miquel Anglada Girotto
 # Contact: miquelangladagirotto [at] gmail [dot] com
 # Last Update: 2021-03-03
-# 
+#
 
 from robustica.examples import sampledata
 import numpy as np
 import pandas as pd
-from sklearn.decomposition import FastICA
-from sklearn.cluster import DBSCAN, AgglomerativeClustering
+from sklearn.decomposition import PCA, FastICA
 import multiprocessing as mp
 from scipy import stats, sparse
+from scipy.stats import pearsonr
+from sklearn.cluster import *
+from sklearn_extra.cluster import *
 
 
-class Sastry():
+class Sastry:
     """
     special distance matrix with precomputed DBSCAN.
     """
+
     def __init__(self, **kws):
-        self.clustering = DBSCAN(metric='precomputed', **kws)
-    
+        self.clustering = DBSCAN(metric="precomputed", **kws)
+
     def fit(self, X):
         # compute similarity matrix
-        dist = abs(np.dot(X,X.T)) # the input will be transposed
-        dist[dist < .5] = 0
+        dist = abs(np.dot(X, X.T))  # the input will be transposed
+        dist[dist < 0.5] = 0
         D = 1 - dist
-        
+
         # correct floating point imprecision
         D[D < 0] = 0
         D[D > 1] = 0
-                
+
         # cluster
         self.clustering.fit(D)
         self.labels_ = self.clustering.labels_
-    
-    
-class Icasso():
+
+
+class Icasso:
     """
     distance_threshold = 
     
@@ -45,28 +48,35 @@ class Icasso():
     clustering = Icasso(distance_threshold=0.8)
     ={'distance_threshold':1.2,'n_clusters':None}
     """
+
     def __init__(self, **kws):
-        self.clustering = AgglomerativeClustering(affinity='precomputed', linkage='average', **kws)
-        
+        self.clustering = AgglomerativeClustering(
+            affinity="precomputed", linkage="average", **kws
+        )
+
     def fit(self, X):
         # compute dissimilarity matrix
         corr = np.abs(np.corrcoef(X))
         D = 1 - corr
-        
+
         # correct floating point imprecision
         D[D < 0] = 0
         D[D > 1] = 0
-        
+
         # continue
         D = np.sqrt(D)
-        
+
         # cluster
         self.clustering.fit(D)
         self.labels_ = self.clustering.labels_
-        
-        
-        
-class RobustICA():
+
+
+def compute_abs_corr(x, y):
+    r, _ = pearsonr(x, y)
+    return 1 - np.abs(r)
+
+
+class RobustICA:
     """
     Class to perform robust Independent Component Analysis (ICA) using different
     methods to cluster together the independent components computed via 
@@ -149,15 +159,31 @@ class RobustICA():
     Nature communications 10.1 (2019): 1-14.*
     
     """
-    def __init__(self, n_components=None, algorithm='parallel', whiten=True, 
-                 fun='logcosh', fun_args=None, max_iter=200, tol=0.0001, 
-                 w_init=None, random_state=None, n_jobs=None,
-                 robust_iter=100, robust_method='DBSCAN', robust_kws={}):
-        
+
+    def __init__(
+        self,
+        n_components=None,
+        algorithm="parallel",
+        whiten=True,
+        fun="logcosh",
+        fun_args=None,
+        max_iter=200,
+        tol=0.0001,
+        w_init=None,
+        random_state=None,
+        n_jobs=None,
+        robust_iter=100,
+        robust_method="DBSCAN",
+        robust_kws="auto",
+        robust_dimreduce=True,
+    ):
+
         # parameters for FastICA
         if max_iter < 1:
-            raise ValueError("max_iter should be greater than 1, got "
-                             "(max_iter={})".format(max_iter))
+            raise ValueError(
+                "max_iter should be greater than 1, got "
+                "(max_iter={})".format(max_iter)
+            )
         self.n_components = n_components
         self.algorithm = algorithm
         self.whiten = whiten
@@ -167,36 +193,69 @@ class RobustICA():
         self.tol = tol
         self.w_init = w_init
         self.random_state = random_state
-        
+
         # initialize FastICA
         self.ica = FastICA(
-             n_components=self.n_components, algorithm=self.algorithm, 
-             whiten=self.whiten, fun=self.fun, fun_args=self.fun_args, 
-             max_iter=self.max_iter, tol=self.tol, 
-             w_init=self.w_init, random_state=self.random_state
+            n_components=self.n_components,
+            algorithm=self.algorithm,
+            whiten=self.whiten,
+            fun=self.fun,
+            fun_args=self.fun_args,
+            max_iter=self.max_iter,
+            tol=self.tol,
+            w_init=self.w_init,
+            random_state=self.random_state,
         )
-        
+
         # parameters for robust procedure
         self.n_jobs = n_jobs
         self.robust_iter = robust_iter
         self.robust_method = robust_method
-        self.robust_kws = robust_kws
-        self.cluster_funcs = {
-            'sastry': Sastry,
-            'icasso': Icasso,
-            'DBSCAN': DBSCAN
-        }
-        
+        if robust_kws == "auto":
+            self.robust_kws = self.get_defaults(
+                self.robust_method, self.n_components, self.robust_iter
+            )
+        else:
+            self.robust_kws = robust_kws
+        if robust_dimreduce:
+            self.robust_dimreduce = "PCA"
+            self.robust_dimreduce_kws = {"n_components": self.n_components}
+
+        # initialize dimension reduction function
+        if self.robust_dimreduce is not None:
+            self._prep_dimreduce_func()
+            self.dimreduce = self.dimreduce_func(**self.robust_dimreduce_kws)
+
         # initialize clustering function
         self._prep_cluster_func()
         self.clustering = self.cluster_func(**self.robust_kws)
-        
-    
+
+    def get_defaults(self, method, n_components, iterations):
+        clustering_defaults = {
+            # sklearn
+            "AffinityPropagation": {},
+            "AgglomerativeClustering": {"n_clusters": n_components},
+            "Birch": {"n_clusters": n_components},
+            "DBSCAN": {"min_samples": iterations * 0.5},
+            "FeatureAgglomeration": {"n_clusters": n_components},
+            "KMeans": {"n_clusters": n_components},
+            "MiniBatchKMeans": {"n_clusters": n_components},
+            "MeanShift": {},
+            "OPTICS": {"min_samples": iterations * 0.5},
+            "SpectralClustering": {"n_clusters": n_components},
+            "SpectralBiclustering": {"n_clusters": n_components},
+            "SpectralCoclustering": {"n_clusters": n_components},
+            # sklearn_extra
+            "KMedoids": {"n_clusters": n_components},
+            "CommonNNClustering": {"min_samples": iterations * 0.5},
+        }
+        kws = clustering_defaults[method]
+        return kws
+
     def _run_ica(self, X):
         S = self.ica.fit_transform(X)
         A = self.ica.mixing_
-        return {'S':S, 'A':A}
-    
+        return {"S": S, "A": A}
 
     def _iterate_ica(self, X):
         """
@@ -214,75 +273,97 @@ class RobustICA():
         result = pool.map(self._run_ica, args)
         pool.close()
         pool.join()
-        
+
         # prepare output
-        self.S_all = np.hstack([r['S'] for r in result])
-        self.A_all = np.hstack([r['A'] for r in result])
-        
-        
+        self.S_all = np.hstack([r["S"] for r in result])
+        self.A_all = np.hstack([r["A"] for r in result])
+
+    def _prep_dimreduce_func(self):
+        if isinstance(self.robust_dimreduce, str):
+            self.dimreduce_func = eval(self.robust_dimreduce)
+        else:
+            self.dimreduce_func = None
+
     def _prep_cluster_func(self):
         if isinstance(self.robust_method, str):
-            self.cluster_func = self.cluster_funcs[self.robust_method]
+            self.cluster_func = eval(self.robust_method)
         else:
             self.cluster_func = self.robust_method
-            
-        
+
+    def _get_iteration_signs(self, X):
+        """
+        Correct direction of every iteration of ICA with respect to the first one.
+        """
+        # init
+        S_all = self.S_all
+        A_all = self.A_all
+        n_components = self.n_components
+        iterations = self.robust_iter
+
+        # get component that explains the most variance of X from first iteration
+        S0 = S_all[:, 0:n_components]
+        A0 = A_all[:, 0:n_components]
+        tss = []
+        for i in range(n_components):
+            pred = np.dot(S0[:, i].reshape(-1, 1), A0[:, i].reshape(1, -1))
+            tss.append(np.sum((X - pred) ** 2))  # total sum of squares
+        best_comp = S0[:, np.argmax(tss)]
+
+        # correlate best component with the rest of iterations to decide signs
+        signs = np.full(S_all.shape[1], np.nan)
+        signs[0:n_components] = 1
+        for it in range(1, iterations):
+            start = n_components * it
+            end = start + n_components
+            S_it = S_all[:, start:end]
+
+            correl = np.apply_along_axis(
+                lambda x: pearsonr(x, best_comp)[0], axis=0, arr=S_it
+            )
+            best_correl = correl[np.argmax(np.abs(correl))]
+            signs[start:end] = np.sign(best_correl)
+
+        return signs
+
     def _compute_centroids(self):
-        """
-        Taken from https://github.com/SBRG/precise-db/blob/master/scripts/cluster_components.py
-        """
-        # put clusters together and correct components direction
+        # correct signs
+        signs = self.iteration_signs_
+        S_all = (signs * self.S_all).T
+        A_all = (signs * self.A_all).T
+
+        # put clusters together
         S = []
         A = []
         sumstats = []
         labels = self.clustering.labels_
         for label in np.unique(labels):
             # subset
-            idx = labels == label
-            S_clust = self.S_all[:,idx]
-            A_clust = self.A_all[:,idx]
-            
-            # first item is base component
-            Svec0 = S_clust[:,0]
-            Avec0 = A_clust[:,0]
-
-            # Make sure base component is facing positive
-            if abs(min(Svec0)) > max(Svec0):
-                Svec0 = -Svec0
-                Avec0 = -Avec0
-
-            S_single = [Svec0]
-            A_single = [Avec0]
-            # Add in rest of components
-            for j in range(1,S_clust.shape[1]):
-                Svec = S_clust[:,j]
-                Avec = A_clust[:,j]
-                if stats.pearsonr(Svec,Svec0)[0] > 0:
-                    S_single.append(Svec)
-                    A_single.append(Avec)
-                else:
-                    S_single.append(-Svec)
-                    A_single.append(-Avec)
+            idx = np.where(labels == label)[0]
+            S_clust = S_all[idx, :]
+            A_clust = A_all[idx, :]
 
             # save centroids
-            S.append(np.array(S_single).T.mean(axis=1))
-            A.append(np.array(A_single).T.mean(axis=1))
-            
+            S.append(np.array(S_clust).T.mean(axis=1))
+            A.append(np.array(A_clust).T.mean(axis=1))
+
             # save summary stats
-            sumstats.append(pd.Series({
-                'cluster_id': label,
-                'cluster_size': len(S_single),
-                'S_mean_std': np.array(S_single).T.std(axis=1).mean(),
-                'A_mean_std': np.array(A_single).T.std(axis=1).mean()
-            }))
-            
+            sumstats.append(
+                pd.Series(
+                    {
+                        "cluster_id": label,
+                        "cluster_size": len(S_clust),
+                        "S_mean_std": np.array(S_clust).T.std(axis=1).mean(),
+                        "A_mean_std": np.array(A_clust).T.std(axis=1).mean(),
+                    }
+                )
+            )
+
         # prepare output
         self.S = np.stack(S).T
         self.A = np.stack(A).T
         self.clustering_stats_ = pd.concat(sumstats, axis=1).T
-        
-        
-    def _cluster_components(self):
+
+    def _cluster_components(self, X):
         """
         Example
         -------
@@ -294,23 +375,33 @@ class RobustICA():
         rica.A.shape
         rica.clustering_stats_
         """
+        # correct signs of components by iteration
+        print("Correcting component signs across iterations...")
+        self.iteration_signs_ = self._get_iteration_signs(X)
+        S_all = self.iteration_signs_ * self.S_all
+        S_all = S_all.T  # ICs are in columns; we need to transpose
+
+        # reduce dimensions
+        if self.robust_dimreduce is not None:
+            print("Reducing dimensions...")
+            S_all = self.dimreduce.fit_transform(S_all)
+
         # cluster
-        self.clustering.fit(self.S_all.T) # ICs are in columns; we need to transpose
+        print("Clustering...")
+        self.clustering.fit(S_all)
+
         # get centroids
         self._compute_centroids()
-        
-    
+
     def fit(self, X):
         # run ICA many times
         self._iterate_ica(X)
         # cluster components
-        self._cluster_components()
-    
-    
+        self._cluster_components(X)
+
     def transform(self, X):
         return self.S, self.A
-        
-        
+
     def fit_transform(self, X):
         self.fit(X)
         S, A = self.transform(X)
