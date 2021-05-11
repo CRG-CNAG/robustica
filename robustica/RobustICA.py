@@ -13,11 +13,12 @@ from scipy import stats, sparse
 from scipy.stats import pearsonr
 from sklearn.cluster import *
 from sklearn_extra.cluster import *
+import time
 
 
 class Sastry:
     """
-    special distance matrix with precomputed DBSCAN.
+    Special distance matrix with precomputed DBSCAN.
     """
 
     def __init__(self, **kws):
@@ -69,12 +70,7 @@ class Icasso:
         # cluster
         self.clustering.fit(D)
         self.labels_ = self.clustering.labels_
-
-
-def compute_abs_corr(x, y):
-    r, _ = pearsonr(x, y)
-    return 1 - np.abs(r)
-
+        
 
 class RobustICA:
     """
@@ -157,7 +153,6 @@ class RobustICA:
     *Sastry, Anand V., et al. "The Escherichia coli transcriptome mostly 
     consists of independently regulated modules." 
     Nature communications 10.1 (2019): 1-14.*
-    
     """
 
     def __init__(
@@ -212,7 +207,7 @@ class RobustICA:
         self.robust_iter = robust_iter
         self.robust_method = robust_method
         if robust_kws == "auto":
-            self.robust_kws = self.get_defaults(
+            self.robust_kws = self._get_defaults(
                 self.robust_method, self.n_components, self.robust_iter
             )
         else:
@@ -230,32 +225,36 @@ class RobustICA:
         self._prep_cluster_func()
         self.clustering = self.cluster_func(**self.robust_kws)
 
-    def get_defaults(self, method, n_components, iterations):
+    def _get_defaults(self, method, n_components, iterations):
         clustering_defaults = {
             # sklearn
             "AffinityPropagation": {},
             "AgglomerativeClustering": {"n_clusters": n_components},
             "Birch": {"n_clusters": n_components},
-            "DBSCAN": {"min_samples": iterations * 0.5},
+            "DBSCAN": {"min_samples": int(iterations * 0.5)},
             "FeatureAgglomeration": {"n_clusters": n_components},
             "KMeans": {"n_clusters": n_components},
             "MiniBatchKMeans": {"n_clusters": n_components},
             "MeanShift": {},
-            "OPTICS": {"min_samples": iterations * 0.5},
+            "OPTICS": {"min_samples": int(iterations * 0.5)},
             "SpectralClustering": {"n_clusters": n_components},
             "SpectralBiclustering": {"n_clusters": n_components},
             "SpectralCoclustering": {"n_clusters": n_components},
             # sklearn_extra
             "KMedoids": {"n_clusters": n_components},
-            "CommonNNClustering": {"min_samples": iterations * 0.5},
+            "CommonNNClustering": {"min_samples": int(iterations * 0.5)},
         }
         kws = clustering_defaults[method]
         return kws
 
     def _run_ica(self, X):
+        start_time = time.time()
         S = self.ica.fit_transform(X)
         A = self.ica.mixing_
-        return {"S": S, "A": A}
+        convergence = self.ica.convergence_
+        n_iter = self.ica.n_iter_
+        seconds = time.time() - start_time
+        return {"S": S, "A": A, "convergence": convergence, "n_iter": n_iter, "time": seconds}
 
     def _iterate_ica(self, X):
         """
@@ -277,6 +276,9 @@ class RobustICA:
         # prepare output
         self.S_all = np.hstack([r["S"] for r in result])
         self.A_all = np.hstack([r["A"] for r in result])
+        self.convergence_ = {i: r["convergence"] for i, r in enumerate(result)}
+        self.n_iter_ = {i: r["n_iter"] for i, r in enumerate(result)}
+        self.time_ = {i: r["time"] for i, r in enumerate(result)}
 
     def _prep_dimreduce_func(self):
         if isinstance(self.robust_dimreduce, str):
@@ -334,6 +336,8 @@ class RobustICA:
         # put clusters together
         S = []
         A = []
+        S_std = []
+        A_std = []
         sumstats = []
         labels = self.clustering.labels_
         for label in np.unique(labels):
@@ -345,7 +349,11 @@ class RobustICA:
             # save centroids
             S.append(np.array(S_clust).T.mean(axis=1))
             A.append(np.array(A_clust).T.mean(axis=1))
-
+            
+            # save stds
+            S_std.append(np.array(S_clust).T.std(axis=1))
+            A_std.append(np.array(A_clust).T.std(axis=1))
+            
             # save summary stats
             sumstats.append(
                 pd.Series(
@@ -361,6 +369,8 @@ class RobustICA:
         # prepare output
         self.S = np.stack(S).T
         self.A = np.stack(A).T
+        self.S_std = np.stack(S_std).T
+        self.A_std = np.stack(A_std).T
         self.clustering_stats_ = pd.concat(sumstats, axis=1).T
 
     def _cluster_components(self, X):
@@ -406,3 +416,13 @@ class RobustICA:
         self.fit(X)
         S, A = self.transform(X)
         return S, A
+    
+    def prepare_summary(self):
+        df = pd.DataFrame.from_dict(self.convergence_, orient='index').T.melt().dropna()
+        df.columns = ['iteration_robustica','convergence_score']
+        df['iteration_ica'] = df.groupby('iteration_robustica').cumcount()
+        df = df.join(pd.Series(self.time_, name='time_ica'), on='iteration_robustica')
+        df = df.join(pd.Series(self.n_iter_, name='convergence_n_iter'), on='iteration_robustica')
+        df['max_iter'] = self.ica.max_iter
+        df['tol'] = self.ica.tol
+        return df
