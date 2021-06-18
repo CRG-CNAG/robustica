@@ -4,13 +4,12 @@
 # Last Update: 2021-03-03
 #
 
-from robustica.examples import sampledata
 import numpy as np
 import pandas as pd
 from sklearn.decomposition import PCA, FastICA
-import multiprocessing as mp
-from scipy import stats, sparse
-from scipy.stats import pearsonr
+from sklearn.metrics import silhouette_samples
+from joblib import Parallel, delayed
+from tqdm import tqdm
 from sklearn.cluster import *
 from sklearn_extra.cluster import *
 import time
@@ -29,10 +28,7 @@ class Sastry:
         dist = abs(np.dot(X, X.T))  # the input will be transposed
         dist[dist < 0.5] = 0
         D = 1 - dist
-
-        # correct floating point imprecision
-        D[D < 0] = 0
-        D[D > 1] = 0
+        D = np.clip(1 - corr, [0,1])
 
         # cluster
         self.clustering.fit(D)
@@ -58,19 +54,26 @@ class Icasso:
     def fit(self, X):
         # compute dissimilarity matrix
         corr = np.abs(np.corrcoef(X))
-        D = 1 - corr
-
-        # correct floating point imprecision
-        D[D < 0] = 0
-        D[D > 1] = 0
-
-        # continue
-        D = np.sqrt(D)
+        D = np.clip(1 - corr, [0,1])
 
         # cluster
         self.clustering.fit(D)
         self.labels_ = self.clustering.labels_
         
+        
+def corrmats(X, Y):
+    # center data
+    X_cent = X - X.mean(axis=0)
+    Y_cent = Y - Y.mean(axis=0)
+    
+    # compute correlation
+    num = X_cent.T.dot(Y_cent)
+    #dom = np.sqrt( (X_cent ** 2).sum(axis=0) * (Y_cent ** 2).sum(axis=0) )
+
+    correl = num #/ dom
+    
+    return correl
+
 
 class RobustICA:
     """
@@ -266,12 +269,12 @@ class RobustICA:
         rica.S_all.shape
         rica.A_all.shape
         """
+        print('Running FastICA multiple times...')
         # iterate
-        pool = mp.pool.ThreadPool(self.n_jobs)
-        args = [X for it in range(self.robust_iter)]
-        result = pool.map(self._run_ica, args)
-        pool.close()
-        pool.join()
+        result = Parallel(n_jobs=self.n_jobs)(
+            delayed(self._run_ica)(args)
+            for args in tqdm([X for it in range(self.robust_iter)])
+        )
 
         # prepare output
         self.S_all = np.hstack([r["S"] for r in result])
@@ -291,25 +294,18 @@ class RobustICA:
             self.cluster_func = eval(self.robust_method)
         else:
             self.cluster_func = self.robust_method
-
-    def _get_iteration_signs(self, X):
+            
+    def _get_iteration_signs(self):
         """
         Correct direction of every iteration of ICA with respect to the first one.
         """
         # init
         S_all = self.S_all
-        A_all = self.A_all
         n_components = self.n_components
         iterations = self.robust_iter
-
-        # get component that explains the most variance of X from first iteration
-        S0 = S_all[:, 0:n_components]
-        A0 = A_all[:, 0:n_components]
-        tss = []
-        for i in range(n_components):
-            pred = np.dot(S0[:, i].reshape(-1, 1), A0[:, i].reshape(1, -1))
-            tss.append(np.sum((X - pred) ** 2))  # total sum of squares
-        best_comp = S0[:, np.argmax(tss)]
+        
+        # components from first run are the reference
+        S0 = S_all[:,0:n_components]
 
         # correlate best component with the rest of iterations to decide signs
         signs = np.full(S_all.shape[1], np.nan)
@@ -319,11 +315,11 @@ class RobustICA:
             end = start + n_components
             S_it = S_all[:, start:end]
 
-            correl = np.apply_along_axis(
-                lambda x: pearsonr(x, best_comp)[0], axis=0, arr=S_it
-            )
-            best_correl = correl[np.argmax(np.abs(correl))]
-            signs[start:end] = np.sign(best_correl)
+            correl = corrmats(S0,S_it)
+            rows_oi = np.abs(correl).argmax(axis=0)
+            cols_oi = np.arange(correl.shape[1])
+            best_correls = correl[(rows_oi,cols_oi)]
+            signs[start:end] = np.sign(best_correls)
 
         return signs
 
@@ -372,6 +368,14 @@ class RobustICA:
         self.S_std = np.stack(S_std).T
         self.A_std = np.stack(A_std).T
         self.clustering_stats_ = pd.concat(sumstats, axis=1).T
+        
+        # silhouette of components
+        self.clustering.silhouette_samples_ = silhouette_samples(S_all, labels)
+        self.clustering_stats_['mean_silhouette'] = [
+            np.mean(self.clustering.silhouette_samples_[labels==cluster_id])
+            for cluster_id in self.clustering_stats_['cluster_id']
+        ]
+        
 
     def _cluster_components(self, X):
         """
@@ -387,7 +391,7 @@ class RobustICA:
         """
         # correct signs of components by iteration
         print("Correcting component signs across iterations...")
-        self.iteration_signs_ = self._get_iteration_signs(X)
+        self.iteration_signs_ = self._get_iteration_signs()
         S_all = self.iteration_signs_ * self.S_all
         S_all = S_all.T  # ICs are in columns; we need to transpose
 
