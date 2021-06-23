@@ -16,26 +16,6 @@ from sklearn_extra.cluster import *
 import time
 
 
-class Sastry:
-    """
-    Special distance matrix with precomputed DBSCAN.
-    """
-
-    def __init__(self, **kws):
-        self.clustering = DBSCAN(metric="precomputed", **kws)
-
-    def fit(self, X):
-        # compute similarity matrix
-        dist = abs(np.dot(X, X.T))  # the input will be transposed
-        dist[dist < 0.5] = 0
-        D = 1 - dist
-        D = np.clip(1 - corr, [0, 1])
-
-        # cluster
-        self.clustering.fit(D)
-        self.labels_ = self.clustering.labels_
-
-
 class Icasso:
     """
     distance_threshold = 
@@ -51,11 +31,15 @@ class Icasso:
         self.clustering = AgglomerativeClustering(
             affinity="precomputed", linkage="average", **kws
         )
-
+    
+    
+    def compute_distance(self, X):
+        return 1 - np.abs(np.corrcoef(X))
+    
+    
     def fit(self, X):
         # compute dissimilarity matrix
-        corr = np.abs(np.corrcoef(X))
-        D = np.clip(1 - corr, [0, 1])
+        D = self.compute_distance(X)
 
         # cluster
         self.clustering.fit(D)
@@ -78,20 +62,15 @@ def corrmats(X, Y):
     return r
 
 
-def abs_pearson_dist(X):
-    """
-    Dissilarity between columns of X.
-    """
-    return 1 - np.abs(np.corrcoef(X.T))
-
-
-def compute_iq(X, labels, metric):
+def compute_iq(X, labels, metric='precomputed'):
     """
     Compute cluster quality index.
     """
     if metric != "precomputed":
-        D = abs_pearson_dist(X)
-    abs_r = 1 - D
+        D = 1 - np.abs(np.corrcoef(X.T))
+        abs_r = 1 - D
+    else:
+        abs_r = X
     iqs = []
     for label in np.unique(labels):
         idx_cluster = labels == label
@@ -203,9 +182,8 @@ class RobustICA:
         n_jobs=None,
         robust_runs=100,
         robust_infer_signs=False,
-        robust_metric="abs_pearson",
         robust_method="AgglomerativeClustering",
-        robust_kws=None,
+        robust_kws={},
         robust_dimreduce=False,
     ):
 
@@ -242,32 +220,26 @@ class RobustICA:
         self.n_jobs = n_jobs
         self.robust_runs = robust_runs
         self.robust_infer_signs = robust_infer_signs
-        self.robust_metric = robust_metric
         self.robust_method = robust_method
-        if robust_kws is None:
+        if (isinstance(robust_method, str)) & (len(robust_kws)==0):
             self.robust_kws = self._get_clustering_defaults(
-                self.robust_method,
-                self.robust_metric,
-                self.n_components,
-                self.robust_runs,
+                self.robust_method, self.n_components, self.robust_runs
             )
         else:
-            self.robust_kws = robust_kws
-        self.robust_kws["metric"] = self.robust_metric
+            self.robust_kws = robust_kws   
 
-        if robust_dimreduce:
+        self.robust_dimreduce = robust_dimreduce
+        if self.robust_dimreduce:
             self.robust_dimreduce = "PCA"
             self.robust_dimreduce_kws = {"n_components": self.n_components}
 
         # initialize dimension reduction function
-        if self.robust_dimreduce is not None:
+        if self.robust_dimreduce != False:
             self._prep_dimreduce_func()
             self.dimreduce = self.dimreduce_func(**self.robust_dimreduce_kws)
 
         # initialize clustering function
         self._prep_cluster_func()
-        if self.robust_kws["metric"] == "abs_pearson":
-            self.robust_kws["metric"] = "precomputed"
         self.clustering = self.cluster_func(**self.robust_kws)
 
     def _get_clustering_defaults(self, method, n_components, iterations):
@@ -287,7 +259,7 @@ class RobustICA:
             "SpectralCoclustering": {"n_clusters": n_components},
             # sklearn_extra
             "KMedoids": {"n_clusters": n_components},
-            "CommonNNClustering": {"min_samples": int(iterations * 0.5)},
+            "CommonNNClustering": {"min_samples": int(iterations * 0.5)}
         }
         kws = clustering_defaults[method]
         return kws
@@ -421,8 +393,8 @@ class RobustICA:
             A.append(A_single.mean(axis=1))
 
             # save stds
-            S_std.append(np.array(S_clust).T.std(axis=1))
-            A_std.append(np.array(A_clust).T.std(axis=1))
+            S_std.append(np.array(S_clust).std(axis=1))
+            A_std.append(np.array(A_clust).std(axis=1))
 
             # save summary stats
             sumstats.append(
@@ -448,7 +420,7 @@ class RobustICA:
 
         return S, A, S_std, A_std, clustering_stats, orientation
 
-    def _cluster_components(self, X):
+    def _cluster_components(self, S_all):
         """
         Example
         -------
@@ -485,22 +457,20 @@ class RobustICA:
         else:
             signs = np.ones(self.S_all.shape[1])
 
+        Y = S_all * signs
+
         ## compress feature space
         if self.robust_dimreduce != False:
             print("Reducing dimensions...")
-            S_all = self.dimreduce.fit_transform(S_all.T).T
-
-        ## compute dissimilarity
-        if self.robust_metric == "abs_pearson":
-            S_all = abs_pearson_dist(S_all)
+            Y = self.dimreduce.fit_transform(Y.T).T
 
         ## cluster
-        self._cluster_components(S_all.T)
+        self._cluster_components(Y.T)
         labels = self.clustering.labels_
 
         ## compute robust components
         S, A, S_std, A_std, clustering_stats, orientation = self._compute_centroids(
-            self.S_all * signs, self.A_all * signs, labels
+            S_all * signs, A_all * signs, labels
         )
 
         ## save attributes
@@ -545,12 +515,7 @@ class RobustICA:
         orientation = self.orientation_
 
         # metric
-        if self.robust_metric == "abs_pearson":
-            metric = "precomputed"
-            X = abs_pearson_dist(S_all)
-        else:
-            metric = self.robust_metric
-            X = (S_all * sign * orientation).T
+        X = (S_all * sign * orientation).T
 
         # silhouette of components
         self.clustering.silhouette_scores_ = silhouette_samples(
