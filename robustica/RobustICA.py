@@ -62,21 +62,20 @@ def corrmats(X, Y):
     return r
 
 
-def compute_iq(X, labels, metric='precomputed'):
+def compute_iq(X, labels, precomputed=False):
     """
     Compute cluster quality index.
     """
-    if metric != "precomputed":
-        D = 1 - np.abs(np.corrcoef(X.T))
-        abs_r = 1 - D
+    if precomputed:
+        correl = 1 - X
     else:
-        abs_r = X
+        correl = np.corrcoef(X.T)
     iqs = []
     for label in np.unique(labels):
         idx_cluster = labels == label
 
-        avg_in = abs_r[idx_cluster, :][:, idx_cluster].mean()
-        avg_out = abs_r[idx_cluster, :][:, ~idx_cluster].mean()
+        avg_in = correl[idx_cluster, :][:, idx_cluster].mean()
+        avg_out = correl[idx_cluster, :][:, ~idx_cluster].mean()
         iq_cluster = avg_in - avg_out
         iqs.append(iq_cluster)
 
@@ -187,12 +186,8 @@ class RobustICA:
         robust_dimreduce=False,
     ):
 
-        # parameters for FastICA
-        if max_iter < 1:
-            raise ValueError(
-                "max_iter should be greater than 1, got "
-                "(max_iter={})".format(max_iter)
-            )
+        # init parameters
+        ## FastICA
         self.n_components = n_components
         self.algorithm = algorithm
         self.whiten = whiten
@@ -202,8 +197,15 @@ class RobustICA:
         self.tol = tol
         self.w_init = w_init
         self.random_state = random_state
-
-        # initialize FastICA
+        ## robust procedure
+        self.n_jobs = n_jobs
+        self.robust_runs = robust_runs
+        self.robust_infer_signs = robust_infer_signs
+        self.robust_method = robust_method
+        self.robust_kws = robust_kws
+        self.robust_dimreduce = robust_dimreduce
+        
+        # init FastICA
         self.ica = FastICA(
             n_components=self.n_components,
             algorithm=self.algorithm,
@@ -216,31 +218,23 @@ class RobustICA:
             random_state=self.random_state,
         )
 
-        # parameters for robust procedure
-        self.n_jobs = n_jobs
-        self.robust_runs = robust_runs
-        self.robust_infer_signs = robust_infer_signs
-        self.robust_method = robust_method
+        # init robust procedure
+        ## dimension reduction (PCA) before clustering
+        if self.robust_dimreduce:
+            self.robust_dimreduce = "PCA"
+            self.robust_dimreduce_kws = {"n_components": self.n_components}
+            self._prep_dimreduce_class()
+            self.dimreduce = self.dimreduce_class(**self.robust_dimreduce_kws)
+            
+        ## clustering algorithm
+        ### decide using our default classes and parameters
         if (isinstance(robust_method, str)) & (len(robust_kws)==0):
             self.robust_kws = self._get_clustering_defaults(
                 self.robust_method, self.n_components, self.robust_runs
             )
-        else:
-            self.robust_kws = robust_kws   
-
-        self.robust_dimreduce = robust_dimreduce
-        if self.robust_dimreduce:
-            self.robust_dimreduce = "PCA"
-            self.robust_dimreduce_kws = {"n_components": self.n_components}
-
-        # initialize dimension reduction function
-        if self.robust_dimreduce != False:
-            self._prep_dimreduce_func()
-            self.dimreduce = self.dimreduce_func(**self.robust_dimreduce_kws)
-
-        # initialize clustering function
-        self._prep_cluster_func()
-        self.clustering = self.cluster_func(**self.robust_kws)
+        ### init clustering class
+        self._prep_cluster_class()
+        self.clustering = self.cluster_class(**self.robust_kws)
 
     def _get_clustering_defaults(self, method, n_components, iterations):
         clustering_defaults = {
@@ -264,17 +258,17 @@ class RobustICA:
         kws = clustering_defaults[method]
         return kws
 
-    def _prep_dimreduce_func(self):
+    def _prep_dimreduce_class(self):
         if isinstance(self.robust_dimreduce, str):
-            self.dimreduce_func = eval(self.robust_dimreduce)
+            self.dimreduce_class = eval(self.robust_dimreduce)
         else:
-            self.dimreduce_func = None
+            self.dimreduce_class = None
 
-    def _prep_cluster_func(self):
+    def _prep_cluster_class(self):
         if isinstance(self.robust_method, str):
-            self.cluster_func = eval(self.robust_method)
+            self.cluster_class = eval(self.robust_method)
         else:
-            self.cluster_func = self.robust_method
+            self.cluster_class = self.robust_method
 
     def _run_ica(self, X):
         start_time = time.time()
@@ -420,7 +414,7 @@ class RobustICA:
 
         return S, A, S_std, A_std, clustering_stats, orientation
 
-    def _cluster_components(self, S_all):
+    def _compute_robust_components(self, S_all):
         """
         Example
         -------
@@ -430,11 +424,34 @@ class RobustICA:
         rica._cluster_components()
         rica.S.shape
         rica.A.shape
-        rica.clustering_stats_
+        rica.clustering.stats_
         """
-        # cluster
-        print("Clustering...")
-        self.clustering.fit(S_all)
+        ## infer signs of components across ICA runs
+        if self.robust_infer_signs:
+            print("Inferring sign of components...")
+            signs = self.infer_components_signs(
+                S_all, self.n_components, self.robust_runs
+            )
+        else:
+            signs = np.ones(S_all.shape[1])
+
+        Y = S_all * signs
+
+        ## compress feature space
+        if self.robust_dimreduce != False:
+            print("Reducing dimensions...")
+            Y = self.dimreduce.fit_transform(Y.T).T
+
+        ## cluster
+        self.clustering.fit(Y.T)
+        labels = self.clustering.labels_
+
+        ## compute robust components
+        S, A, S_std, A_std, clustering_stats, orientation = self._compute_centroids(
+            S_all * signs, A_all * signs, labels
+        )
+        
+        return S, A, S_std, A_std, clustering_stats, signs, orientation
 
     def fit(self, X):
         # run ICA multiple times
@@ -449,37 +466,15 @@ class RobustICA:
         self.time = time
 
         # Compute robust independent components
-        ## infer signs of components across ICA runs
-        if self.robust_infer_signs:
-            signs = self.infer_components_signs(
-                S_all, self.n_components, self.robust_runs
-            )
-        else:
-            signs = np.ones(self.S_all.shape[1])
-
-        Y = S_all * signs
-
-        ## compress feature space
-        if self.robust_dimreduce != False:
-            print("Reducing dimensions...")
-            Y = self.dimreduce.fit_transform(Y.T).T
-
-        ## cluster
-        self._cluster_components(Y.T)
-        labels = self.clustering.labels_
-
-        ## compute robust components
-        S, A, S_std, A_std, clustering_stats, orientation = self._compute_centroids(
-            S_all * signs, A_all * signs, labels
-        )
+        S, A, S_std, A_std, clustering_stats, signs, orientation = _compute_robust_components(S_all)
 
         ## save attributes
         self.S = S
         self.A = A
         self.S_std = S_std
         self.A_std = A_std
-        self.signs_
-        self.clustering_stats_ = clustering_stats
+        self.clustering.stats_ = clustering_stats
+        self.signs_ = signs
         self.orientation_ = orientation
 
     def transform(self, X):
@@ -505,7 +500,7 @@ class RobustICA:
         df["tol"] = self.ica.tol
         return df
 
-    def evaluate_clustering(self):
+    def evaluate_clustering(self, silhouette_metric='euclidean'):
         """
         Run after fit()
         """
@@ -514,23 +509,23 @@ class RobustICA:
         sign = self.signs_
         orientation = self.orientation_
 
-        # metric
-        X = (S_all * sign * orientation).T
+        # prep
+        Y = (S_all * sign * orientation).T
 
         # silhouette of components
         self.clustering.silhouette_scores_ = silhouette_samples(
-            X, labels, metric=metric
+            Y, labels, metric=silhouette_metric
         )
 
         # Iq of components
-        self.clustering.iq_scores_ = compute_iq(X, labels, metric=metric)
+        self.clustering.iq_scores_ = compute_iq(Y, labels)
 
         # update clustering stats
-        self.clustering_stats_["mean_silhouette"] = [
+        self.clustering.stats_["mean_silhouette"] = [
             np.mean(self.clustering.silhouette_samples_[labels == cluster_id])
-            for cluster_id in self.clustering_stats_["cluster_id"]
+            for cluster_id in self.clustering.stats_["cluster_id"]
         ]
 
-        self.clustering_stats_ = pd.merge(
-            self.clustering_stats_, self.clustering.iq_scores_, on="cluster_id"
+        self.clustering.stats_ = pd.merge(
+            self.clustering.stats_, self.clustering.iq_scores_, on="cluster_id"
         )
