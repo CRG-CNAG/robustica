@@ -66,10 +66,13 @@ def compute_iq(X, labels, precomputed=False):
     """
     Compute cluster quality index.
     """
+    # is X already a correlation matrix?
     if precomputed:
         correl = 1 - X
     else:
         correl = np.corrcoef(X.T)
+    
+    # compute Iq for every cluster
     iqs = []
     for label in np.unique(labels):
         idx_cluster = labels == label
@@ -274,15 +277,15 @@ class RobustICA:
         start_time = time.time()
         S = self.ica.fit_transform(X)
         A = self.ica.mixing_
-        convergence = self.ica.convergence_
-        n_iter = self.ica.n_iter_
         seconds = time.time() - start_time
+        #(P.R. pending) convergence = self.ica.convergence_
+        #(P.R. pending) n_iter = self.ica.n_iter_
         return {
             "S": S,
             "A": A,
-            "convergence": convergence,
-            "n_iter": n_iter,
-            "time": seconds,
+            "time": seconds
+        #(P.R. pending)     "convergence": convergence,
+        #(P.R. pending)     "n_iter": n_iter,
         }
 
     def _iterate_ica(self, X):
@@ -305,11 +308,11 @@ class RobustICA:
         # prepare output
         S_all = np.hstack([r["S"] for r in result])
         A_all = np.hstack([r["A"] for r in result])
-        convergence = {i: r["convergence"] for i, r in enumerate(result)}
-        n_iter = {i: r["n_iter"] for i, r in enumerate(result)}
         time = {i: r["time"] for i, r in enumerate(result)}
+        #(P.R. pending) convergence = {i: r["convergence"] for i, r in enumerate(result)}
+        #(P.R. pending) n_iter = {i: r["n_iter"] for i, r in enumerate(result)}
 
-        return S_all, A_all, convergence, n_iter, time
+        return S_all, A_all, time #(P.R. pending) convergence, n_iter,
 
     def _infer_components_signs(self, S_all, n_components, iterations):
         """
@@ -456,14 +459,14 @@ class RobustICA:
     def fit(self, X):
         # run ICA multiple times
         ## iterate
-        S_all, A_all, convergence, n_iter, time = self._iterate_ica(X)
+        S_all, A_all, time = self._iterate_ica(X) #(P.R. pending)
 
         ## save attributes
         self.S_all = S_all
         self.A_all = A_all
-        self.convergence_ = convergence
-        self.n_iter_ = n_iter
         self.time = time
+        #(P.R. pending) self.convergence_ = convergence
+        #(P.R. pending) self.n_iter_ = n_iter
 
         # Compute robust independent components
         S, A, S_std, A_std, clustering_stats, signs, orientation = _compute_robust_components(S_all)
@@ -484,21 +487,6 @@ class RobustICA:
         self.fit(X)
         S, A = self.transform(X)
         return S, A
-
-    def prepare_summary(self):
-        """
-        Run after fit()
-        """
-        df = pd.DataFrame.from_dict(self.convergence_, orient="index").T.melt().dropna()
-        df.columns = ["iteration_robustica", "convergence_score"]
-        df["iteration_ica"] = df.groupby("iteration_robustica").cumcount()
-        df = df.join(pd.Series(self.time_, name="time_ica"), on="iteration_robustica")
-        df = df.join(
-            pd.Series(self.n_iter_, name="convergence_n_iter"), on="iteration_robustica"
-        )
-        df["max_iter"] = self.ica.max_iter
-        df["tol"] = self.ica.tol
-        return df
 
     def evaluate_clustering(self, silhouette_metric='euclidean'):
         """
@@ -529,3 +517,20 @@ class RobustICA:
         self.clustering.stats_ = pd.merge(
             self.clustering.stats_, self.clustering.iq_scores_, on="cluster_id"
         )
+
+#(P.R. pending) 
+#     def prepare_summary(self):
+#         """
+#         Run after fit()
+#         """
+#         df = pd.DataFrame.from_dict(self.convergence_, orient="index").T.melt().dropna()
+#         df.columns = ["iteration_robustica", "convergence_score"]
+#         df["iteration_ica"] = df.groupby("iteration_robustica").cumcount()
+#         df = df.join(pd.Series(self.time_, name="time_ica"), on="iteration_robustica")
+#         df = df.join(
+#             pd.Series(self.n_iter_, name="convergence_n_iter"), on="iteration_robustica"
+#         )
+#         df["max_iter"] = self.ica.max_iter
+#         df["tol"] = self.ica.tol
+#         return df
+
