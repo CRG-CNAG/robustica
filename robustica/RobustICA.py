@@ -31,19 +31,18 @@ class Icasso:
         self.clustering = AgglomerativeClustering(
             affinity="precomputed", linkage="average", **kws
         )
-    
-    
-    def compute_distance(self, X):
-        return 1 - np.abs(np.corrcoef(X))
-    
-    
+
     def fit(self, X):
         # compute dissimilarity matrix
-        D = self.compute_distance(X)
+        D = 1 - np.abs(np.corrcoef(X))
 
         # cluster
         self.clustering.fit(D)
         self.labels_ = self.clustering.labels_
+
+
+def abs_pearson_dist(X):
+    return np.clip((1 - np.abs(np.corrcoef(X.T))), 0, 1)
 
 
 def corrmats(X, Y):
@@ -70,8 +69,8 @@ def compute_iq(X, labels, precomputed=False):
     if precomputed:
         correl = 1 - X
     else:
-        correl = np.corrcoef(X.T)
-    
+        correl = np.corrcoef(X)
+
     # compute Iq for every cluster
     iqs = []
     for label in np.unique(labels):
@@ -185,8 +184,9 @@ class RobustICA:
         robust_runs=100,
         robust_infer_signs=False,
         robust_method="AgglomerativeClustering",
-        robust_kws={},
+        robust_kws={"affinity": "precomputed", "linkage": "average"},
         robust_dimreduce=False,
+        robust_precompdist_func="abs_pearson_dist",
     ):
 
         # init parameters
@@ -207,7 +207,8 @@ class RobustICA:
         self.robust_method = robust_method
         self.robust_kws = robust_kws
         self.robust_dimreduce = robust_dimreduce
-        
+        self.robust_precompdist_func = robust_precompdist_func
+
         # init FastICA
         self.ica = FastICA(
             n_components=self.n_components,
@@ -228,38 +229,43 @@ class RobustICA:
             self.robust_dimreduce_kws = {"n_components": self.n_components}
             self._prep_dimreduce_class()
             self.dimreduce = self.dimreduce_class(**self.robust_dimreduce_kws)
-            
+        
+        ## precompute distance matrix
+        self._prep_precompdist_func()
+        
         ## clustering algorithm
         ### decide using our default classes and parameters
-        if (isinstance(robust_method, str)) & (len(robust_kws)==0):
-            self.robust_kws = self._get_clustering_defaults(
-                self.robust_method, self.n_components, self.robust_runs
-            )
-        ### init clustering class
-        self._prep_cluster_class()
-        self.clustering = self.cluster_class(**self.robust_kws)
+        self._set_clustering_defaults()
 
-    def _get_clustering_defaults(self, method, n_components, iterations):
+        ### init clustering class
+        self._prep_clustering_class()
+        self.clustering = self.clustering_class(**self.robust_kws)
+
+    def _set_clustering_defaults(self):
+        no_precomputed = ['Brich','KMeans','MiniBatchKMeans','Meanshift',"SpectralClustering"]
         clustering_defaults = {
             # sklearn
             "AffinityPropagation": {},
-            "AgglomerativeClustering": {"n_clusters": n_components},
-            "Birch": {"n_clusters": n_components},
-            "DBSCAN": {"min_samples": int(iterations * 0.5)},
-            "FeatureAgglomeration": {"n_clusters": n_components},
-            "KMeans": {"n_clusters": n_components},
-            "MiniBatchKMeans": {"n_clusters": n_components},
+            "AgglomerativeClustering": {"n_clusters": self.n_components},
+            "Birch": {"n_clusters": self.n_components},
+            "DBSCAN": {"min_samples": int(self.robust_runs * 0.5)},
+            "FeatureAgglomeration": {"n_clusters": self.n_components},
+            "KMeans": {"n_clusters": self.n_components},
+            "MiniBatchKMeans": {"n_clusters": self.n_components},
             "MeanShift": {},
-            "OPTICS": {"min_samples": int(iterations * 0.5)},
-            "SpectralClustering": {"n_clusters": n_components},
-            "SpectralBiclustering": {"n_clusters": n_components},
-            "SpectralCoclustering": {"n_clusters": n_components},
+            "OPTICS": {"min_samples": int(self.robust_runs * 0.5)},
+            "SpectralClustering": {"n_clusters": self.n_components},
             # sklearn_extra
-            "KMedoids": {"n_clusters": n_components},
-            "CommonNNClustering": {"min_samples": int(iterations * 0.5)}
+            "KMedoids": {"n_clusters": self.n_components},
+            "CommonNNClustering": {"min_samples": int(self.robust_runs * 0.5)},
         }
-        kws = clustering_defaults[method]
-        return kws
+        if (isinstance(self.robust_method,str)) & (
+            not any(np.isin(["n_clusters", "min_samples"], list(self.robust_kws.keys())))
+        ):
+            self.robust_kws = {
+                **self.robust_kws, 
+                **clustering_defaults[self.robust_method]
+            }
 
     def _prep_dimreduce_class(self):
         if isinstance(self.robust_dimreduce, str):
@@ -267,25 +273,29 @@ class RobustICA:
         else:
             self.dimreduce_class = None
 
-    def _prep_cluster_class(self):
+    def _prep_precompdist_func(self):
+        if isinstance(self.robust_precompdist_func, str):
+            self.robust_precompdist_func = eval(self.robust_precompdist_func)
+        
+    def _prep_clustering_class(self):
         if isinstance(self.robust_method, str):
-            self.cluster_class = eval(self.robust_method)
+            self.clustering_class = eval(self.robust_method)
         else:
-            self.cluster_class = self.robust_method
-
+            self.clustering_class = self.robust_method
+    
     def _run_ica(self, X):
         start_time = time.time()
         S = self.ica.fit_transform(X)
         A = self.ica.mixing_
         seconds = time.time() - start_time
-        #(P.R. pending) convergence = self.ica.convergence_
-        #(P.R. pending) n_iter = self.ica.n_iter_
+        # (P.R. pending) convergence = self.ica.convergence_
+        # (P.R. pending) n_iter = self.ica.n_iter_
         return {
             "S": S,
             "A": A,
             "time": seconds
-        #(P.R. pending)     "convergence": convergence,
-        #(P.R. pending)     "n_iter": n_iter,
+            # (P.R. pending)     "convergence": convergence,
+            # (P.R. pending)     "n_iter": n_iter,
         }
 
     def _iterate_ica(self, X):
@@ -309,10 +319,10 @@ class RobustICA:
         S_all = np.hstack([r["S"] for r in result])
         A_all = np.hstack([r["A"] for r in result])
         time = {i: r["time"] for i, r in enumerate(result)}
-        #(P.R. pending) convergence = {i: r["convergence"] for i, r in enumerate(result)}
-        #(P.R. pending) n_iter = {i: r["n_iter"] for i, r in enumerate(result)}
+        # (P.R. pending) convergence = {i: r["convergence"] for i, r in enumerate(result)}
+        # (P.R. pending) n_iter = {i: r["n_iter"] for i, r in enumerate(result)}
 
-        return S_all, A_all, time #(P.R. pending) convergence, n_iter,
+        return S_all, A_all, time  # (P.R. pending) convergence, n_iter,
 
     def _infer_components_signs(self, S_all, n_components, iterations):
         """
@@ -417,7 +427,7 @@ class RobustICA:
 
         return S, A, S_std, A_std, clustering_stats, orientation
 
-    def _compute_robust_components(self, S_all):
+    def _compute_robust_components(self, S_all, A_all):
         """
         Example
         -------
@@ -429,6 +439,7 @@ class RobustICA:
         rica.A.shape
         rica.clustering.stats_
         """
+
         ## infer signs of components across ICA runs
         if self.robust_infer_signs:
             print("Inferring sign of components...")
@@ -445,31 +456,47 @@ class RobustICA:
             print("Reducing dimensions...")
             Y = self.dimreduce.fit_transform(Y.T).T
 
+        ## precompute distance matrix
+        if np.isin(["precomputed"], list(self.robust_kws.values()))[0]:
+            # then, we want to use our precompdist_func
+            print("Precomputing distance matrix...")
+            Y = self.robust_precompdist_func(Y)
+
         ## cluster
+        print('Clustering...')
         self.clustering.fit(Y.T)
         labels = self.clustering.labels_
 
         ## compute robust components
+        print('Computing centroids...')
         S, A, S_std, A_std, clustering_stats, orientation = self._compute_centroids(
             S_all * signs, A_all * signs, labels
         )
-        
+
         return S, A, S_std, A_std, clustering_stats, signs, orientation
 
     def fit(self, X):
         # run ICA multiple times
         ## iterate
-        S_all, A_all, time = self._iterate_ica(X) #(P.R. pending)
+        S_all, A_all, time = self._iterate_ica(X)  # (P.R. pending)
 
         ## save attributes
         self.S_all = S_all
         self.A_all = A_all
         self.time = time
-        #(P.R. pending) self.convergence_ = convergence
-        #(P.R. pending) self.n_iter_ = n_iter
+        # (P.R. pending) self.convergence_ = convergence
+        # (P.R. pending) self.n_iter_ = n_iter
 
         # Compute robust independent components
-        S, A, S_std, A_std, clustering_stats, signs, orientation = _compute_robust_components(S_all)
+        (
+            S,
+            A,
+            S_std,
+            A_std,
+            clustering_stats,
+            signs,
+            orientation,
+        ) = _compute_robust_components(S_all)
 
         ## save attributes
         self.S = S
@@ -488,37 +515,53 @@ class RobustICA:
         S, A = self.transform(X)
         return S, A
 
-    def evaluate_clustering(self, silhouette_metric='euclidean'):
+    def evaluate_clustering(self, 
+                            S_all,
+                            labels,
+                            sign,
+                            orientation,
+                            metric="euclidean"):
         """
         Run after fit()
         """
-        S_all = self.S_all
-        labels = self.clustering.labels_
-        sign = self.signs_
-        orientation = self.orientation_
-
+        
         # prep
-        Y = (S_all * sign * orientation).T
-
+        print('Computing Silhouettes...')
+        if metric == "precomputed":
+            Y = S_all
+        else:
+            Y = (S_all * sign * orientation).T
+        
         # silhouette of components
         self.clustering.silhouette_scores_ = silhouette_samples(
-            Y, labels, metric=silhouette_metric
+            Y, labels, metric=metric
         )
 
         # Iq of components
-        self.clustering.iq_scores_ = compute_iq(Y, labels)
-
+        print('Computing Iq...')
+        if metric == "precomputed":
+            self.clustering.iq_scores_ = compute_iq(Y, labels, precomputed=True)
+        else:
+            self.clustering.iq_scores_ = compute_iq(Y, labels)            
+        
+        evaluation = pd.DataFrame({
+            'cluster_id': np.unique(labels)
+        })
+        
         # update clustering stats
-        self.clustering.stats_["mean_silhouette"] = [
-            np.mean(self.clustering.silhouette_samples_[labels == cluster_id])
-            for cluster_id in self.clustering.stats_["cluster_id"]
+        evaluation["mean_silhouette"] = [
+            np.mean(self.clustering.silhouette_scores_[labels == cluster_id])
+            for cluster_id in evaluation["cluster_id"]
         ]
 
-        self.clustering.stats_ = pd.merge(
-            self.clustering.stats_, self.clustering.iq_scores_, on="cluster_id"
+        evaluation = pd.merge(
+            evaluation, self.clustering.iq_scores_, on="cluster_id"
         )
+        
+        return evaluation
 
-#(P.R. pending) 
+
+# (P.R. pending)
 #     def prepare_summary(self):
 #         """
 #         Run after fit()
@@ -533,4 +576,3 @@ class RobustICA:
 #         df["max_iter"] = self.ica.max_iter
 #         df["tol"] = self.ica.tol
 #         return df
-
