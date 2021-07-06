@@ -16,39 +16,60 @@ from sklearn_extra.cluster import *
 import time
 
 
-class Icasso:
-    """
-    distance_threshold = 
-    
-    Example
-    -------
-    X = sampledata
-    clustering = Icasso(distance_threshold=0.8)
-    ={'distance_threshold':1.2,'n_clusters':None}
-    """
-
-    def __init__(self, **kws):
-        self.clustering = AgglomerativeClustering(
-            affinity="precomputed", linkage="average", **kws
-        )
-
-    def fit(self, X):
-        # compute dissimilarity matrix
-        D = 1 - np.abs(np.corrcoef(X))
-
-        # cluster
-        self.clustering.fit(D)
-        self.labels_ = self.clustering.labels_
-
-
 def abs_pearson_dist(X):
-    return np.clip((1 - np.abs(np.corrcoef(X.T))), 0, 1)
+    """
+    Compute Pearson dissimilarity between columns.
+    
+    Parameters
+    ----------
+    X : np.array of shape (n_features, n_samples)
+        Input data.
+        
+    Returns
+    -------
+    D : np.array of shape (n_samples, n_samples)
+        Dissimilarity matrix.
+        
+    Examples
+    --------
+    from robustica import abs_pearson_dist
+    from robustica.examples import make_sampledata
+    
+    X = make_sampledata(15, 5)
+    D = abs_pearson_dist(X)
+    D.shape
+    """
+    D = np.clip((1 - np.abs(np.corrcoef(X.T))), 0, 1)
+    return D
 
 
 def corrmats(X, Y):
     """
-    Correlation matrix between rows in X and rows in Y.
+    Vectorized implementation of pairwise correlations between rows in X and rows in Y.
+    Make sure that the number of columns in X and Y is the same.
+    
+    Parameters
+    ----------
+    X : np.array of shape (n_features_x, n_samples_x)
+    
+    Y : np.array of shape (n_features_y, n_samples_y)
+    
+    Returns
+    -------
+    r : np.array of shape (n_features_x, n_features_y)
+    
+    Examples
+    --------
+    from robustica import corrmats
+    from robustica.examples import make_sampledata
+
+    X = make_sampledata(15, 5)
+    Y = make_sampledata(20, 5)
+    r = corrmats(X, Y)
+    r.shape
     """
+    assert X.shape[1] == Y.shape[1]
+
     X_cent = X - X.mean(axis=1).reshape(-1, 1)
     Y_cent = Y - Y.mean(axis=1).reshape(-1, 1)
 
@@ -63,10 +84,38 @@ def corrmats(X, Y):
 
 def compute_iq(X, labels, precomputed=False):
     """
-    Compute cluster quality index.
+    Compute cluster index of quality as suggested by Himberg, J., & Hyvarinen (2004) (DOI: https://doi.org/10.1109/NNSP.2003.1318025).
+    This method requires computing a square correlation matrix.
+    
+    Parameters
+    ----------
+    X : np.array of shape (n_samples, n_features)
+    
+    labels: list or np.array
+        Clustering labels indicating to which cluster every observation belongs.
+    
+    precomputed: bool, default=False
+        Indicates whether X is a square pairwise correlation matrix.
+    
+    
+    Returns
+    -------
+    df : pd.DataFrame
+        Dataframe with cluster labels ('cluster_id') and their corresponding Iq scores.
+    
+    Examples
+    --------
+    from robustica import compute_iq
+    from robustica.examples import make_sampledata
+    
+    X = make_sampledata(5, 15)
+    labels = [1,1,2,1,2]
+    df = compute_iq(X, labels)
+    df
     """
     # is X already a correlation matrix?
     if precomputed:
+        assert X.shape[0] == X.shape[1]
         correl = 1 - X
     else:
         correl = np.corrcoef(X)
@@ -87,11 +136,27 @@ def compute_iq(X, labels, precomputed=False):
 
 
 class RobustICA:
-    """
+    r"""
     Class to perform robust Independent Component Analysis (ICA) using different
     methods to cluster together the independent components computed via 
-    `sklearn.decomposition.FastICA`.
+    `sklearn.decomposition.FastICA`. 
     
+    By default, it carries out the *Icasso* algorithm
+    using aglomerative clustering with average linkage and a precomputed Pearson
+    dissimilarity matrix.
+    
+    Schematically, RobustICA works like this:
+        1) Run ICA multiple times and save source (S) and mixing (A) matrices.
+        2) Cluster the components into robust components using Ss across runs.
+            2.1) If we use a precomputed dissimilarity:
+                2.1.1) Precompute dissimilarity
+            2.2) If we don't use a precomputed dissimilarity:
+                2.2.1) (Optional) Infer and correct component signs across runs
+                2.2.2) (Optional) Reduce the feature space with PCA
+            2.3) Cluster components across all S runs
+            2.4) Use clustering labels to compute the centroid of each cluster,
+                 i.e. the robust component in both S and A.
+            
     Parameters
     ----------
     n_components : int, default=None
@@ -134,39 +199,113 @@ class RobustICA:
         across multiple function calls.
         See :term:`Glossary <random_state>`.
     
-    method : {'fcluster', 'DBSCAN'}, default=None
-        The clustering method to use in order to build the robust components.
-        'fcluster' corresponds to the Icasso approach described in .
-        'DBSCAN' corresponds to the approach described in 
-    
-    method_kws : dict, default={}
-        Dictionary of parameters for the clustering method function.
+    robust_runs : int, default=100
+        Number of times to run FastICA.
         
+    robust_infer_signs : bool, default=False
+        If robust_infer_signs is True, we infer and correct the signs of components 
+        across ICA runs before clustering them.
+        
+    robust_method : str or callable, default="AgglomerativeClustering"
+        Clustering class to compute robust components across ICA runs.
+        If str, choose one of the following clustering algorithms from 
+        `sklearn.cluster`:
+            - "AgglomerativeClustering"
+            - "AffinityPropagation"
+            - "Birch"
+            - "DBSCAN"
+            - "FeatureAgglomeration"
+            - "KMeans"
+            - "MiniBatchKMeans"
+            - "MeanShift"
+            - "OPTICS"
+            - "SpectralClustering"
+            
+        or from `sklearn_extra.cluster`:
+            - "KMedoids"
+            - "CommonNNClustering"
+            
+        If class, the algorithm expects a clustering class with a `self.fit()` method 
+        that creates a `self.clustering.labels_` attribute returning the list of clustering labels.
+        
+    robust_kws : dict, default={"affinity": "precomputed", "linkage": "average"}
+        Keyword arguments to send to clustering class defined by robust_method.
+        If robust_method is str and if "n_clusters" or "min_samples" are not 
+        defined in robust_kws, robust_kws will be updated with either 
+        {"n_clusters": self.n_components} or 
+        {"min_samples": int(self.robust_runs * 0.5)} accordingly.
+        
+    robust_dimreduce : bool, default=False
+        If robust_dimreduce is True, we use `sklearn.decomposition.PCA` with 
+        the same n_components to reduce the feature space across ICA runs after 
+        sign inference and correction (if robust_infer_signs=True) and before clustering.
+        
+    robust_precompdist_func :  "abs_pearson_dist" or callable, default="abs_pearson_dist"
+        If robust_kws contain the value "precomputed", we precompute a distance
+        matrix by executing robust_precomp_dist_func and use it for clustering.
         
     Attributes
     ----------
+    S : np.array of shape (n_features, n_components)
+        Robust source matrix computed using the centroids of every cluster.
     
+    A : np.array of shape (n_samples, n_components)
+        Robust mixing matrix computed using the centroids of every cluster.
+        
+    S_std : np.array of shape (n_features, n_components)
+        Within robust component standard deviation across features.
+    
+    A_std : np.array of shape (n_features, n_components)
+        Within robust component standard deviation across samples.
+        
+    S_all : np.array of shape (n_features, n_components * robust_runs)
+        Concatenated source matrices corresponding to every run of ICA. 
+        
+    A_all : np.array of shape (n_features, n_components * robust_runs)
+        Concatenated mixing matrices corresponding to every run of ICA.
+
+    time : dict of length n_components * robust_runs
+        Time to execute every run of ICA for robust_runs times. Dictionary 
+        structured as {run : seconds}.
+    
+    signs_ : np.array of length n_components * robust_runs
+        Array of positive or negative ones used to correct for signs before 
+        clustering.
+    
+    orientation_ : np.array of length n_components * robust_runs
+        Array of positive or negative ones used to orient labeled components
+        after clustering so that largest weights face positive.
+    
+    ica : `sklearn.decomposition.FastICA`
+        Instance used to compute independent components multiple times.
+        
+    clustering : class instance
+        Instance used to cluster components in S_all across ICA runs. The clustering
+        labels can be found in the attribute `self.clustering.labels_`. 
+        In `self.clustering.stats_` you can find information on cluster sizes and
+        mean standard deviations per cluster in both S and A robust matrices.
     
     Examples
     --------
-    from robustica import RobustICA, sampledata
+    from robustica import RobustICA
+    from robustica.examples import make_sampledata
     
-    X = sampledata
-    rica = RobustICA()
-    S = rica.fit_transform(X)
-    A = rica.mixing_
+    X = make_sampledata(200,50)
+    rica = RobustICA(n_components=10)
+    S, A = rica.fit_transform(X)
     
     Notes
     -----
     Icasso procedure based on
-    *Himberg, Johan, Aapo Hyvärinen, and Fabrizio Esposito. "Validating the 
-    independent components of neuroimaging time series via clustering and 
-    visualization." Neuroimage 22.3 (2004): 1214-1222.*
+    *Himberg, J., & Hyvarinen, A. "Icasso: software for investigating the reliability of ICA estimates by clustering and visualization". 
+    IEEE XIII Workshop on Neural Networks for Signal Processing (2003 ). 
+    DOI: 10.1109/nnsp.2003.1318025*
     
-    DBSCAN procedure based on
+    Centroid computation based on
     *Sastry, Anand V., et al. "The Escherichia coli transcriptome mostly 
     consists of independently regulated modules." 
-    Nature communications 10.1 (2019): 1-14.*
+    Nature communications 10.1 (2019): 1-14.
+    DOI: https://doi.org/10.1038/s41467-019-13483-w*
     """
 
     def __init__(
@@ -229,10 +368,10 @@ class RobustICA:
             self.robust_dimreduce_kws = {"n_components": self.n_components}
             self._prep_dimreduce_class()
             self.dimreduce = self.dimreduce_class(**self.robust_dimreduce_kws)
-        
+
         ## precompute distance matrix
         self._prep_precompdist_func()
-        
+
         ## clustering algorithm
         ### decide using our default classes and parameters
         self._set_clustering_defaults()
@@ -242,7 +381,13 @@ class RobustICA:
         self.clustering = self.clustering_class(**self.robust_kws)
 
     def _set_clustering_defaults(self):
-        no_precomputed = ['Brich','KMeans','MiniBatchKMeans','Meanshift',"SpectralClustering"]
+        no_precomputed = [
+            "Brich",
+            "KMeans",
+            "MiniBatchKMeans",
+            "Meanshift",
+            "SpectralClustering",
+        ]
         clustering_defaults = {
             # sklearn
             "AffinityPropagation": {},
@@ -259,12 +404,14 @@ class RobustICA:
             "KMedoids": {"n_clusters": self.n_components},
             "CommonNNClustering": {"min_samples": int(self.robust_runs * 0.5)},
         }
-        if (isinstance(self.robust_method,str)) & (
-            not any(np.isin(["n_clusters", "min_samples"], list(self.robust_kws.keys())))
+        if (isinstance(self.robust_method, str)) & (
+            not any(
+                np.isin(["n_clusters", "min_samples"], list(self.robust_kws.keys()))
+            )
         ):
             self.robust_kws = {
-                **self.robust_kws, 
-                **clustering_defaults[self.robust_method]
+                **self.robust_kws,
+                **clustering_defaults[self.robust_method],
             }
 
     def _prep_dimreduce_class(self):
@@ -276,38 +423,67 @@ class RobustICA:
     def _prep_precompdist_func(self):
         if isinstance(self.robust_precompdist_func, str):
             self.robust_precompdist_func = eval(self.robust_precompdist_func)
-        
+
     def _prep_clustering_class(self):
         if isinstance(self.robust_method, str):
             self.clustering_class = eval(self.robust_method)
         else:
             self.clustering_class = self.robust_method
-    
+
     def _run_ica(self, X):
+        """
+        Execute and instance of `sklearn.decomposition.FastICA` once.
+        
+        Parameters
+        ----------
+        X : np.array of shape (n_features, n_samples)
+            Data input.
+        
+        Returns
+        -------
+        output : dict
+            Dictionary containing outputs from the run: source matrix ("S"),
+            mixing matrix ("A") and execution time in seconds ("time")
+        """
+        
         start_time = time.time()
         S = self.ica.fit_transform(X)
         A = self.ica.mixing_
         seconds = time.time() - start_time
         # (P.R. pending) convergence = self.ica.convergence_
         # (P.R. pending) n_iter = self.ica.n_iter_
-        return {
+        output = {
             "S": S,
             "A": A,
             "time": seconds
             # (P.R. pending)     "convergence": convergence,
             # (P.R. pending)     "n_iter": n_iter,
         }
-
+        return output
+    
     def _iterate_ica(self, X):
         """
-        Example
+        Execute and instance of `sklearn.decomposition.FastICA` for robust_runs
+        times with random initialisations.
+        
+        Parameters
+        ----------
+        X : np.array of shape (n_features, n_samples)
+            Data input.
+        
+        Returns
         -------
-        X = sampledata
-        rica = RobustICA(n_jobs=10, n_components=10)
-        rica._iterate_ica(X.values)
-        rica.S_all.shape
-        rica.A_all.shape
+        S_all : np.array of shape (n_features, n_components * robust_runs)
+            Concatenated source matrices corresponding to every run of ICA. 
+
+        A_all : np.array of shape (n_features, n_components * robust_runs)
+            Concatenated mixing matrices corresponding to every run of ICA.
+
+        time : dict of length n_components * robust_runs
+            Time to execute every run of ICA for robust_runs times. Dictionary 
+            structured as {run : seconds}.            
         """
+        
         print("Running FastICA multiple times...")
         # iterate
         result = Parallel(n_jobs=self.n_jobs)(
@@ -324,9 +500,26 @@ class RobustICA:
 
         return S_all, A_all, time  # (P.R. pending) convergence, n_iter,
 
-    def _infer_components_signs(self, S_all, n_components, iterations):
+    def _infer_components_signs(self, S_all, n_components, robust_runs):
         """
         Correct direction of every iteration of ICA with respect to the first one.
+        
+        Parameters
+        ----------
+        S_all : np.array of shape (n_features, n_components * robust_runs)
+            Concatenated source matrices corresponding to every run of ICA. 
+            
+        n_components : int, default=None
+            Number of components to use. If None is passed, all are used.
+            
+        robust_runs : int, default=100
+            Number of times to run FastICA.
+        
+        Returns
+        -------
+        signs : np.array of length n_components * robust_runs
+            Array of positive or negative ones used to correct for signs before 
+            clustering.
         """
         # components from first run are the reference
         S0 = S_all[:, 0:n_components]
@@ -334,7 +527,7 @@ class RobustICA:
         # correlate best component with the rest of iterations to decide signs
         signs = np.full(S_all.shape[1], np.nan)
         signs[0:n_components] = 1
-        for it in range(1, iterations):
+        for it in range(1, robust_runs):
             start = n_components * it
             end = start + n_components
             S_it = S_all[:, start:end]
@@ -349,7 +542,47 @@ class RobustICA:
 
     def _compute_centroids(self, S_all, A_all, labels):
         """
-        Based on https://github.com/SBRG/precise-db/blob/master/scripts/cluster_components.py
+        Compute centroid for every cluster while re-orienting components so that
+        large absolute weights face positive.
+        
+        Parameters
+        ----------
+        S_all : np.array of shape (n_features, n_components * robust_runs)
+            Concatenated source matrices corresponding to every run of ICA. 
+
+        A_all : np.array of shape (n_features, n_components * robust_runs)
+            Concatenated mixing matrices corresponding to every run of ICA.        
+            
+        labels : array-like object of length n_components * robust_runs
+            List of clustering labels.
+        
+        Returns
+        -------
+        S : np.array of shape (n_features, n_components)
+            Robust source matrix computed using the centroids of every cluster.
+
+        A : np.array of shape (n_samples, n_components)
+            Robust mixing matrix computed using the centroids of every cluster.
+
+        S_std : np.array of shape (n_features, n_components)
+            Within robust component standard deviation across features.
+
+        A_std : np.array of shape (n_features, n_components)
+            Within robust component standard deviation across samples.
+        
+        clustering_stats : pd.DataFrame
+            DataFrame with information on the cluster sizes and mean standard
+            deviations across clusters for both S and A matrices. 
+            This object will become available as part of the clustering 
+            instance: `self.clustering.stats_`.
+        
+        orientation : np.array of length n_components * robust_runs
+            Array of positive or negative ones used to orient labeled components
+            after clustering so that largest weights face positive.
+
+        Notes
+        -----
+        Based on https://github.com/SBRG/precise-db/blob/782c252d4e4e6fb7e5d0037b85b1a00b59c6f1fe/scripts/cluster_components.py#L151
         """
         # put clusters together
         S = []
@@ -429,15 +662,43 @@ class RobustICA:
 
     def _compute_robust_components(self, S_all, A_all):
         """
-        Example
+        Recipe to compute robust components after running ICA multiple times.
+        
+        Parameters
+        ----------
+        S_all : np.array of shape (n_features, n_components * robust_runs)
+            Concatenated source matrices corresponding to every run of ICA. 
+
+        A_all : np.array of shape (n_features, n_components * robust_runs)
+            Concatenated mixing matrices corresponding to every run of ICA.  
+            
+        Returns
         -------
-        X = sampledata
-        rica = RobustICA(n_jobs=10, n_components=5, robust_method='DBSCAN', robust_kws={'min_samples':5, 'n_jobs':10})
-        rica._iterate_ica(X.values)
-        rica._cluster_components()
-        rica.S.shape
-        rica.A.shape
-        rica.clustering.stats_
+        S : np.array of shape (n_features, n_components)
+            Robust source matrix computed using the centroids of every cluster.
+
+        A : np.array of shape (n_samples, n_components)
+            Robust mixing matrix computed using the centroids of every cluster.
+
+        S_std : np.array of shape (n_features, n_components)
+            Within robust component standard deviation across features.
+
+        A_std : np.array of shape (n_features, n_components)
+            Within robust component standard deviation across samples.
+        
+        clustering_stats : pd.DataFrame
+            DataFrame with information on the cluster sizes and mean standard
+            deviations across clusters for both S and A matrices. 
+            This object will become available as part of the clustering 
+            instance: `self.clustering.stats_`.
+            
+        signs : np.array of length n_components * robust_runs
+            Array of positive or negative ones used to correct for signs before 
+            clustering.
+        
+        orientation : np.array of length n_components * robust_runs
+            Array of positive or negative ones used to orient labeled components
+            after clustering so that largest weights face positive.    
         """
 
         ## infer signs of components across ICA runs
@@ -463,12 +724,12 @@ class RobustICA:
             Y = self.robust_precompdist_func(Y)
 
         ## cluster
-        print('Clustering...')
+        print("Clustering...")
         self.clustering.fit(Y.T)
         labels = self.clustering.labels_
 
         ## compute robust components
-        print('Computing centroids...')
+        print("Computing centroids...")
         S, A, S_std, A_std, clustering_stats, orientation = self._compute_centroids(
             S_all * signs, A_all * signs, labels
         )
@@ -476,6 +737,18 @@ class RobustICA:
         return S, A, S_std, A_std, clustering_stats, signs, orientation
 
     def fit(self, X):
+        """
+        Runs ICA robust_runs times and computes robust independent components.
+        
+        Parameters
+        ----------
+        X : np.array of shape (n_features, n_samples)
+            Data input.
+        
+        Returns
+        -------
+        self
+        """
         # run ICA multiple times
         ## iterate
         S_all, A_all, time = self._iterate_ica(X)  # (P.R. pending)
@@ -496,7 +769,7 @@ class RobustICA:
             clustering_stats,
             signs,
             orientation,
-        ) = _compute_robust_components(S_all)
+        ) = self._compute_robust_components(S_all, A_all)
 
         ## save attributes
         self.S = S
@@ -507,57 +780,124 @@ class RobustICA:
         self.signs_ = signs
         self.orientation_ = orientation
 
-    def transform(self, X):
+    def transform(self):
+        """
+        After having executed the `self.fit(X)` method, return robust S and A matrices.
+        
+        Parameters
+        ----------
+        self
+        
+        Returns
+        -------
+        S : np.array of shape (n_features, n_components)
+            Robust source matrix computed using the centroids of every cluster.
+
+        A : np.array of shape (n_samples, n_components)
+            Robust mixing matrix computed using the centroids of every cluster.
+        """
         return self.S, self.A
 
     def fit_transform(self, X):
+        """
+        Runs ICA robust_runs times and computes robust independent components and
+        returns the robust S and A matrices.
+        
+        Parameters
+        ----------
+        X : np.array of shape (n_features, n_samples)
+            Data input.
+        
+        Returns
+        -------
+        S : np.array of shape (n_features, n_components)
+            Robust source matrix computed using the centroids of every cluster.
+
+        A : np.array of shape (n_samples, n_components)
+            Robust mixing matrix computed using the centroids of every cluster.
+        """
+        
         self.fit(X)
         S, A = self.transform(X)
         return S, A
 
-    def evaluate_clustering(self, 
-                            S_all,
-                            labels,
-                            sign,
-                            orientation,
-                            metric="euclidean"):
+    def evaluate_clustering(self, S_all, labels, signs, orientation, metric="euclidean"):
         """
-        Run after fit()
+        After having executed the `self.fit(X)` method, computes silhouette scores
+        by samples and index of quality (Iq) proposed by Himberg, J., & Hyvarinen 
+        (2004) (DOI: https://doi.org/10.1109/NNSP.2003.1318025).
+        
+        Silhouette scores for each component are computed using 
+        `sklearn.metrics.silhouette_samples`.
+        
+        Iq scores foreach cluster (i.e. robust component) are computed using 
+        `robustica.RobustICA.compute_iq`.
+        
+        Parameters
+        ----------
+        S_all : np.array of shape (n_features, n_components * robust_runs)
+            Concatenated source matrices corresponding to every run of ICA. 
+            
+        labels : array-like object of length n_components * robust_runs
+            List of clustering labels.
+        
+        signs : np.array of length n_components * robust_runs
+            Array of positive or negative ones used to correct for signs before 
+            clustering.
+        
+        orientation : np.array of length n_components * robust_runs
+            Array of positive or negative ones used to orient labeled components
+            after clustering so that largest weights face positive. 
+        
+        metric : str
+            Metric to use to evaluate the clustering with 
+            `sklearn.metrics.silhouette_samples`. If metric='precomputed', S_all
+            has to be a square matrix with a diagonal of 0s.
+            
+        Returns
+        -------
+        evaluation : pd.DataFrame
+            Dataframe with information on the average silhouette scores and Iq
+            for each cluster.
+        
+        Attributes
+        ----------
+        self.clustering.silhouette_scores_ : np.array of length n_components * robust_runs
+            Silhouette coefficient for each component.
+            
+        self.clustering.iq_scores_ : np.array of length n_components * robust_runs
+            Iq coefficient for each component.
         """
         
         # prep
-        print('Computing Silhouettes...')
+        print("Computing Silhouettes...")
         if metric == "precomputed":
             Y = S_all
         else:
-            Y = (S_all * sign * orientation).T
-        
+            Y = (S_all * signs * orientation).T
+
         # silhouette of components
         self.clustering.silhouette_scores_ = silhouette_samples(
             Y, labels, metric=metric
         )
 
         # Iq of components
-        print('Computing Iq...')
+        print("Computing Iq...")
         if metric == "precomputed":
             self.clustering.iq_scores_ = compute_iq(Y, labels, precomputed=True)
         else:
-            self.clustering.iq_scores_ = compute_iq(Y, labels)            
-        
-        evaluation = pd.DataFrame({
-            'cluster_id': np.unique(labels)
-        })
-        
+            self.clustering.iq_scores_ = compute_iq(Y, labels)
+
+        evaluation = pd.DataFrame({"cluster_id": np.unique(labels)})
+
         # update clustering stats
         evaluation["mean_silhouette"] = [
             np.mean(self.clustering.silhouette_scores_[labels == cluster_id])
             for cluster_id in evaluation["cluster_id"]
         ]
 
-        evaluation = pd.merge(
-            evaluation, self.clustering.iq_scores_, on="cluster_id"
-        )
-        
+        evaluation = pd.merge(evaluation, self.clustering.iq_scores_, on="cluster_id")
+
         return evaluation
 
 
