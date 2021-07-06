@@ -5,6 +5,20 @@ Fully cumstomizable robust Independent Components Analysis (ICA).
 [![conda](https://anaconda.org/conda-forge/robustica/badges/version.svg)](https://anaconda.org/conda-forge/robustica)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
+## Description
+This package contains 3 modules:
+- `RobustICA`
+
+    Defines the most important class that allows to perform and customize robust independent component analysis.
+    
+- `InferComponents`
+
+    Retrieves the number of components that explain a user-defined percentage of variance.
+
+- `examples`
+    
+    Contains handy functions to quickly create or access example datasets.
+
 ## Requirements
 - `numpy` (1.19.2)
 - `pandas` (1.1.2)
