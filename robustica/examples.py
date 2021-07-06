@@ -1,8 +1,24 @@
-import pandas as pd
 import numpy as np
 
-# sampledata
-nrow, ncol = 20000, 400
-sampledata = pd.DataFrame(np.random.rand(nrow, ncol), 
-                          index=['row%s'%r for r in range(nrow)], 
-                          columns=['col%s'%c for c in range(ncol)])
+def make_sampledata(nrow, ncol, seed=None):
+    """
+    Prepare a random sample dataset with `np.random.rand`.
+    
+    Parameters
+    ----------
+    nrow : int
+        Number of desired rows.
+    ncol : int
+        Number of desired columns
+    seed : int, default=None
+        Random seed in case we want full reproducibility.
+    
+    Returns
+    -------
+    sampledata : np.array of shape (nrow, ncol)
+        Resulting random sample dataset.
+    """
+    np.random.seed(seed=seed)
+    sampledata = np.random.rand(nrow, ncol)
+    
+    return sampledata
