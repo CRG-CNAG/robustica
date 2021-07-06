@@ -450,14 +450,10 @@ class RobustICA:
         S = self.ica.fit_transform(X)
         A = self.ica.mixing_
         seconds = time.time() - start_time
-        # (P.R. pending) convergence = self.ica.convergence_
-        # (P.R. pending) n_iter = self.ica.n_iter_
         output = {
             "S": S,
             "A": A,
             "time": seconds
-            # (P.R. pending)     "convergence": convergence,
-            # (P.R. pending)     "n_iter": n_iter,
         }
         return output
     
@@ -495,10 +491,8 @@ class RobustICA:
         S_all = np.hstack([r["S"] for r in result])
         A_all = np.hstack([r["A"] for r in result])
         time = {i: r["time"] for i, r in enumerate(result)}
-        # (P.R. pending) convergence = {i: r["convergence"] for i, r in enumerate(result)}
-        # (P.R. pending) n_iter = {i: r["n_iter"] for i, r in enumerate(result)}
 
-        return S_all, A_all, time  # (P.R. pending) convergence, n_iter,
+        return S_all, A_all, time
 
     def _infer_components_signs(self, S_all, n_components, robust_runs):
         """
@@ -751,14 +745,12 @@ class RobustICA:
         """
         # run ICA multiple times
         ## iterate
-        S_all, A_all, time = self._iterate_ica(X)  # (P.R. pending)
+        S_all, A_all, time = self._iterate_ica(X)
 
         ## save attributes
         self.S_all = S_all
         self.A_all = A_all
         self.time = time
-        # (P.R. pending) self.convergence_ = convergence
-        # (P.R. pending) self.n_iter_ = n_iter
 
         # Compute robust independent components
         (
@@ -899,20 +891,3 @@ class RobustICA:
         evaluation = pd.merge(evaluation, self.clustering.iq_scores_, on="cluster_id")
 
         return evaluation
-
-
-# (P.R. pending)
-#     def prepare_summary(self):
-#         """
-#         Run after fit()
-#         """
-#         df = pd.DataFrame.from_dict(self.convergence_, orient="index").T.melt().dropna()
-#         df.columns = ["iteration_robustica", "convergence_score"]
-#         df["iteration_ica"] = df.groupby("iteration_robustica").cumcount()
-#         df = df.join(pd.Series(self.time_, name="time_ica"), on="iteration_robustica")
-#         df = df.join(
-#             pd.Series(self.n_iter_, name="convergence_n_iter"), on="iteration_robustica"
-#         )
-#         df["max_iter"] = self.ica.max_iter
-#         df["tol"] = self.ica.tol
-#         return df
