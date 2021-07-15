@@ -1,5 +1,8 @@
-# `robustica`
-Fully cumstomizable robust Independent Components Analysis (ICA).
+<p align="center">
+  <img src="images/logo.png" alt="Girl in a jacket" width="200">
+</p>
+
+Fully customizable robust Independent Component Analysis (ICA).
 
 [![pipy](https://img.shields.io/pypi/v/robustica?color=informational)](https://pypi.python.org/pypi/robustica)
 [![conda](https://anaconda.org/conda-forge/robustica/badges/version.svg)](https://anaconda.org/conda-forge/robustica)
