@@ -698,7 +698,7 @@ class RobustICA:
         ## infer signs of components across ICA runs
         if self.robust_infer_signs:
             print("Inferring sign of components...")
-            signs = self.infer_components_signs(
+            signs = self._infer_components_signs(
                 S_all, self.n_components, self.robust_runs
             )
         else:
