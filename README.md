@@ -60,22 +60,22 @@ S, A = rica.fit_transform(X.values)
 ```
 
 ## Tutorials
-- [Basic pipeline for exploratory analysis](https://github.com/MiqG/robustica/blob/main/tutorials/basics.ipynb)
-- [Using a custom clustering class](https://github.com/MiqG/robustica/blob/main/tutorials/customize_clustering.ipynb)
-- [Inferring the number of components](https://github.com/MiqG/robustica/blob/main/tutorials/infer_components.ipynb)
+- [Basic pipeline for exploratory analysis](https://github.com/CRG-CNAG/robustica/blob/main/tutorials/basics.ipynb)
+- [Using a custom clustering class](https://github.com/CRG-CNAG/robustica/blob/main/tutorials/customize_clustering.ipynb)
+- [Inferring the number of components](https://github.com/CRG-CNAG/robustica/blob/main/tutorials/infer_components.ipynb)
 
 
 ## Contact
 This project has been fully developed at the [Centre for Genomic Regulation](https://www.crg.eu/) within the group of [Design of Biological Systems](https://www.crg.eu/en/luis_serrano)
 
-Please, report any issues that you experience through this repository's ["Issues"](https://github.com/MiqG/robustica/issues) or email:
+Please, report any issues that you experience through this repository's ["Issues"](https://github.com/CRG-CNAG/robustica/issues) or email:
 - [Miquel Anglada-Girotto](mailto:miquel.anglada@crg.eu)
 - [Sarah A. Head](mailto:sarah.dibartolo@crg.eu)
 - [Luis Serrano](mailto:luis.serrano@crg.eu)
 
 ## License
 
-`robustica` is distributed under a BSD 3-Clause License (see [LICENSE](https://github.com/MiqG/robustica/blob/main/LICENSE)).
+`robustica` is distributed under a BSD 3-Clause License (see [LICENSE](https://github.com/CRG-CNAG/robustica/blob/main/LICENSE)).
 
 ## References
 - *Himberg, J., & Hyvarinen, A.* "Icasso: software for investigating the reliability of ICA estimates by clustering and visualization". IEEE XIII Workshop on Neural Networks for Signal Processing (2003). DOI: https://doi.org/10.1109/NNSP.2003.1318025
