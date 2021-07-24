@@ -6,7 +6,7 @@ Fully customizable robust Independent Component Analysis (ICA).
 
 [![pipy](https://img.shields.io/pypi/v/robustica?color=informational)](https://pypi.python.org/pypi/robustica)
 [![conda](https://anaconda.org/conda-forge/robustica/badges/version.svg)](https://anaconda.org/conda-forge/robustica)
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 
 ## Description
 This package contains 3 modules:
