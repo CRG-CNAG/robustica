@@ -33,10 +33,6 @@ In brackets, versions of packages used to revelop `robustica`.
 - `tqdm` (4.59.0)
 
 ## Installation
-### conda
-```shell
-conda install -c conda-forge robustica
-```
 ### pip
 ```shell
 pip install robustica
