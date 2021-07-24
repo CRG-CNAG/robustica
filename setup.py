@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name="robustica",
-    version="0.1.0",
+    version="0.1.1",
     packages=["robustica"],
     python_requires=">=3.8",
     package_data={"": ["LICENSE", "*.md","*.ipynb","*.yml"]},
