@@ -1,3 +1,10 @@
+# 2020 - Centre de Regulacio Genomica (CRG) - All Rights Reserved
+#
+# Author: Miquel Anglada Girotto
+# Contact: miquel [dot] anglada [at] crg [dot] eu
+# Last Update: 2021-07-24
+#
+
 import numpy as np
 
 def make_sampledata(nrow, ncol, seed=None):

@@ -1,7 +1,8 @@
+# 2020 - Centre de Regulacio Genomica (CRG) - All Rights Reserved
 #
 # Author: Miquel Anglada Girotto
-# Contact: miquelangladagirotto [at] gmail [dot] com
-# Last Update: 2021-03-03
+# Contact: miquel [dot] anglada [at] crg [dot] eu
+# Last Update: 2021-07-24
 #
 
 import numpy as np
@@ -202,7 +203,7 @@ class RobustICA:
     robust_runs : int, default=100
         Number of times to run FastICA.
         
-    robust_infer_signs : bool, default=False
+    robust_infer_signs : bool, default=True
         If robust_infer_signs is True, we infer and correct the signs of components 
         across ICA runs before clustering them.
         
@@ -228,14 +229,14 @@ class RobustICA:
         If class, the algorithm expects a clustering class with a `self.fit()` method 
         that creates a `self.clustering.labels_` attribute returning the list of clustering labels.
         
-    robust_kws : dict, default={"affinity": "precomputed", "linkage": "average"}
+    robust_kws : dict, default={"linkage": "average"}
         Keyword arguments to send to clustering class defined by robust_method.
         If robust_method is str and if "n_clusters" or "min_samples" are not 
         defined in robust_kws, robust_kws will be updated with either 
         {"n_clusters": self.n_components} or 
         {"min_samples": int(self.robust_runs * 0.5)} accordingly.
         
-    robust_dimreduce : bool, default=False
+    robust_dimreduce : bool, default=True
         If robust_dimreduce is True, we use `sklearn.decomposition.PCA` with 
         the same n_components to reduce the feature space across ICA runs after 
         sign inference and correction (if robust_infer_signs=True) and before clustering.
@@ -298,14 +299,14 @@ class RobustICA:
     -----
     Icasso procedure based on
     *Himberg, J., & Hyvarinen, A. "Icasso: software for investigating the reliability of ICA estimates by clustering and visualization". 
-    IEEE XIII Workshop on Neural Networks for Signal Processing (2003 ). 
-    DOI: 10.1109/nnsp.2003.1318025*
+    IEEE XIII Workshop on Neural Networks for Signal Processing (2003).* 
+    DOI: https://doi.org/10.1109/NNSP.2003.1318025
     
     Centroid computation based on
     *Sastry, Anand V., et al. "The Escherichia coli transcriptome mostly 
     consists of independently regulated modules." 
-    Nature communications 10.1 (2019): 1-14.
-    DOI: https://doi.org/10.1038/s41467-019-13483-w*
+    Nature communications 10.1 (2019): 1-14.*
+    DOI: https://doi.org/10.1038/s41467-019-13483-w
     """
 
     def __init__(
@@ -321,10 +322,10 @@ class RobustICA:
         random_state=None,
         n_jobs=None,
         robust_runs=100,
-        robust_infer_signs=False,
+        robust_infer_signs=True,
+        robust_dimreduce=True,
         robust_method="AgglomerativeClustering",
-        robust_kws={"affinity": "precomputed", "linkage": "average"},
-        robust_dimreduce=False,
+        robust_kws={"linkage": "average"},
         robust_precompdist_func="abs_pearson_dist",
     ):
 
@@ -445,18 +446,14 @@ class RobustICA:
             Dictionary containing outputs from the run: source matrix ("S"),
             mixing matrix ("A") and execution time in seconds ("time")
         """
-        
+
         start_time = time.time()
         S = self.ica.fit_transform(X)
         A = self.ica.mixing_
         seconds = time.time() - start_time
-        output = {
-            "S": S,
-            "A": A,
-            "time": seconds
-        }
+        output = {"S": S, "A": A, "time": seconds}
         return output
-    
+
     def _iterate_ica(self, X):
         """
         Execute and instance of `sklearn.decomposition.FastICA` for robust_runs
@@ -479,7 +476,7 @@ class RobustICA:
             Time to execute every run of ICA for robust_runs times. Dictionary 
             structured as {run : seconds}.            
         """
-        
+
         print("Running FastICA multiple times...")
         # iterate
         result = Parallel(n_jobs=self.n_jobs)(
@@ -631,11 +628,10 @@ class RobustICA:
             A_std.append(np.array(A_clust).std(axis=1))
 
             # save summary stats
-            sumstats.append(
                 pd.Series(
                     {
                         "cluster_id": label,
-                        "cluster_size": len(S_clust),
+                        "cluster_size": sum(idx),
                         "S_mean_std": np.array(S_clust).T.std(axis=1).mean(),
                         "A_mean_std": np.array(A_clust).T.std(axis=1).mean(),
                     }
@@ -712,7 +708,10 @@ class RobustICA:
             Y = self.dimreduce.fit_transform(Y.T).T
 
         ## precompute distance matrix
-        if np.isin(["precomputed"], list(self.robust_kws.values()))[0]:
+        contains_precomputed = np.isin(["precomputed"], list(self.robust_kws.values()))[
+            0
+        ]
+        if contains_precomputed and (self.robust_precompdist_func is not None):
             # then, we want to use our precompdist_func
             print("Precomputing distance matrix...")
             Y = self.robust_precompdist_func(Y)
@@ -808,12 +807,14 @@ class RobustICA:
         A : np.array of shape (n_samples, n_components)
             Robust mixing matrix computed using the centroids of every cluster.
         """
-        
+
         self.fit(X)
-        S, A = self.transform(X)
+        S, A = self.transform()
         return S, A
 
-    def evaluate_clustering(self, S_all, labels, signs, orientation, metric="euclidean"):
+    def evaluate_clustering(
+        self, S_all, labels, signs, orientation, metric="euclidean"
+    ):
         """
         After having executed the `self.fit(X)` method, computes silhouette scores
         by samples and index of quality (Iq) proposed by Himberg, J., & Hyvarinen 
@@ -860,7 +861,7 @@ class RobustICA:
         self.clustering.iq_scores_ : np.array of length n_components * robust_runs
             Iq coefficient for each component.
         """
-        
+
         # prep
         print("Computing Silhouettes...")
         if metric == "precomputed":

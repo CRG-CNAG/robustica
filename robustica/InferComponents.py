@@ -1,7 +1,8 @@
+# 2020 - Centre de Regulacio Genomica (CRG) - All Rights Reserved
 #
 # Author: Miquel Anglada Girotto
-# Contact: miquelangladagirotto [at] gmail [dot] com
-# Last Update: 2021-03-03
+# Contact: miquel [dot] anglada [at] crg [dot] eu
+# Last Update: 2021-07-24
 #
 
 from sklearn.decomposition import PCA
