@@ -56,7 +56,7 @@ from robustica.examples import make_sampledata
 X = make_sampledata(ncol=300, nrow=2000, seed=123)
 
 rica = RobustICA(n_components=10)
-S, A = rica.fit_transform(X.values)
+S, A = rica.fit_transform(X)
 ```
 
 ## Tutorials
