@@ -16,8 +16,8 @@ setup(
         "tqdm",
     ],
     author="Miquel Anglada Girotto",
-    author_email="miquelangladagirotto@gmail.com",
+    author_email="miquel.anglada@crg.eu",
     description="Fully cumstomizable robust Independent Components Analysis (ICA)",
-    url="https://github.com/MiqG/robustica",
-    project_urls={"Issues": "https://github.com/MiqG/robustica/issues"},
+    url="https://github.com/CRG-CNAG/robustica",
+    project_urls={"Issues": "https://github.com/CRG-CNAG/robustica/issues"},
 )

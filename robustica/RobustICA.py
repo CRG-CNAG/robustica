@@ -628,6 +628,7 @@ class RobustICA:
             A_std.append(np.array(A_clust).std(axis=1))
 
             # save summary stats
+            sumstats.append(
                 pd.Series(
                     {
                         "cluster_id": label,
@@ -637,7 +638,6 @@ class RobustICA:
                     }
                 )
             )
-
             # save orientation
             orientation[idx] = ori
 
