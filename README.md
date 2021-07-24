@@ -68,10 +68,10 @@ S, A = rica.fit_transform(X.values)
 ## Contact
 This project has been fully developed at the [Centre for Genomic Regulation](https://www.crg.eu/) within the group of [Design of Biological Systems](https://www.crg.eu/en/luis_serrano)
 
-Please, report any issues that you experience through this repository's ["Issues"] or email:
-[Miquel Anglada-Girotto](mailto:miquel.anglada@crg.eu)
-[Sarah A. Head](mailto:sarah.dibartolo@crg.eu)
-[Luis Serrano](mailto:luis.serrano@crg.eu)
+Please, report any issues that you experience through this repository's ["Issues"](https://github.com/MiqG/robustica/issues) or email:
+- [Miquel Anglada-Girotto](mailto:miquel.anglada@crg.eu)
+- [Sarah A. Head](mailto:sarah.dibartolo@crg.eu)
+- [Luis Serrano](mailto:luis.serrano@crg.eu)
 
 ## License
 
