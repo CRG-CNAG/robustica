@@ -207,7 +207,7 @@ class RobustICA:
         If robust_infer_signs is True, we infer and correct the signs of components 
         across ICA runs before clustering them.
         
-    robust_method : str or callable, default="AgglomerativeClustering"
+    robust_method : str or callable, default="DBSCAN"
         Clustering class to compute robust components across ICA runs.
         If str, choose one of the following clustering algorithms from 
         `sklearn.cluster`:
@@ -324,8 +324,8 @@ class RobustICA:
         robust_runs=100,
         robust_infer_signs=True,
         robust_dimreduce=True,
-        robust_method="AgglomerativeClustering",
-        robust_kws={"linkage": "average"},
+        robust_method="DBSCAN",
+        robust_kws={},
         robust_precompdist_func="abs_pearson_dist",
     ):
 
@@ -410,6 +410,7 @@ class RobustICA:
                 np.isin(["n_clusters", "min_samples"], list(self.robust_kws.keys()))
             )
         ):
+            print('Setting clustering defaults:', clustering_defaults[self.robust_method])
             self.robust_kws = {
                 **self.robust_kws,
                 **clustering_defaults[self.robust_method],
