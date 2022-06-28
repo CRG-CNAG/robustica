@@ -2,7 +2,7 @@
 #
 # Author: Miquel Anglada Girotto
 # Contact: miquel [dot] anglada [at] crg [dot] eu
-# Last Update: 2021-07-24
+# Last Update: 2022-06-26
 #
 
 import numpy as np
@@ -625,8 +625,8 @@ class RobustICA:
             A.append(A_single.mean(axis=1))
 
             # save stds
-            S_std.append(np.array(S_clust).std(axis=1))
-            A_std.append(np.array(A_clust).std(axis=1))
+            S_std.append(S_single.std(axis=1))
+            A_std.append(A_single.std(axis=1))
 
             # save summary stats
             sumstats.append(
@@ -634,8 +634,8 @@ class RobustICA:
                     {
                         "cluster_id": label,
                         "cluster_size": sum(idx),
-                        "S_mean_std": np.array(S_clust).T.std(axis=1).mean(),
-                        "A_mean_std": np.array(A_clust).T.std(axis=1).mean(),
+                        "S_mean_std": S_single.std(axis=1).mean(),
+                        "A_mean_std": A_single.std(axis=1).mean(),
                     }
                 )
             )
