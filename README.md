@@ -21,6 +21,8 @@ This package contains 3 modules:
     
     Contains handy functions to quickly create or access example datasets.
 
+A more user-friendly documentation can be found at https://crg-cnag.github.io/robustica/.
+
 ## Requirements
 In brackets, versions of packages used to revelop `robustica`.
 - `numpy` (1.19.2)
