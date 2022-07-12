@@ -1,6 +1,6 @@
-<p align="center">
-  <img src="images/logo.png" width="200">
-</p>
+# `robustica`
+
+![robustica logo](images/logo.png)
 
 Fully customizable robust Independent Component Analysis (ICA).
 
