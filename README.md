@@ -55,9 +55,9 @@ S, A = rica.fit_transform(X)
 ```
 
 ## Tutorials
-- [Basic pipeline for exploratory analysis](https://github.com/CRG-CNAG/robustica/blob/main/tutorials/basics.ipynb)
-- [Using a custom clustering class](https://github.com/CRG-CNAG/robustica/blob/main/tutorials/customize_clustering.ipynb)
-- [Inferring the number of components](https://github.com/CRG-CNAG/robustica/blob/main/tutorials/infer_components.ipynb)
+- [Basic pipeline for exploratory analysis](https://crg-cnag.github.io/robustica/basics.html)
+- [Using a custom clustering class](https://crg-cnag.github.io/robustica/customize_clustering.html)
+- [Inferring the number of components](https://crg-cnag.github.io/robustica/infer_components.html)
 
 
 ## Contact
