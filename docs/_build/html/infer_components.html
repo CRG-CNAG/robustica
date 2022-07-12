@@ -1,0 +1,1991 @@
+<!doctype html>
+<html class="no-js">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="prev" title="Using a custom clustering class" href="customize_clustering.html" />
+
+    <meta name="generator" content="sphinx-4.4.0, furo 2022.06.21"/>
+        <title>Inferring the number of components - robustica 0.1.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?digest=40978830699223671f4072448e654b5958f38b89" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?digest=30d1aed668e5c3a91c3e3bf6a60b675221979f0e" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-half" viewBox="0 0 24 24">
+    <title>Auto light/dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-shadow">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M13 12h5" />
+      <path d="M13 15h4" />
+      <path d="M13 18h1" />
+      <path d="M13 9h4" />
+      <path d="M13 6h1" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="index.html"><div class="brand">robustica 0.1.2 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
+  
+  
+  <span class="sidebar-brand-text">robustica 0.1.2 documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="search.html" role="search">
+  <input class="sidebar-search" placeholder=Search name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Modules</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="RobustICA.html"><code class="docutils literal notranslate"><span class="pre">RobustICA</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="InferComponents.html"><code class="docutils literal notranslate"><span class="pre">InferComponents</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html"><code class="docutils literal notranslate"><span class="pre">examples</span></code></a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="basics.html">Basic pipeline for exploratory analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="customize_clustering.html">Using a custom clustering class</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Inferring the number of components</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main">
+          
+<style>
+/* CSS for nbsphinx extension */
+
+/* remove conflicting styling from Sphinx themes */
+div.nbinput.container div.prompt *,
+div.nboutput.container div.prompt *,
+div.nbinput.container div.input_area pre,
+div.nboutput.container div.output_area pre,
+div.nbinput.container div.input_area .highlight,
+div.nboutput.container div.output_area .highlight {
+    border: none;
+    padding: 0;
+    margin: 0;
+    box-shadow: none;
+}
+
+div.nbinput.container > div[class*=highlight],
+div.nboutput.container > div[class*=highlight] {
+    margin: 0;
+}
+
+div.nbinput.container div.prompt *,
+div.nboutput.container div.prompt * {
+    background: none;
+}
+
+div.nboutput.container div.output_area .highlight,
+div.nboutput.container div.output_area pre {
+    background: unset;
+}
+
+div.nboutput.container div.output_area div.highlight {
+    color: unset;  /* override Pygments text color */
+}
+
+/* avoid gaps between output lines */
+div.nboutput.container div[class*=highlight] pre {
+    line-height: normal;
+}
+
+/* input/output containers */
+div.nbinput.container,
+div.nboutput.container {
+    display: -webkit-flex;
+    display: flex;
+    align-items: flex-start;
+    margin: 0;
+    width: 100%;
+}
+@media (max-width: 540px) {
+    div.nbinput.container,
+    div.nboutput.container {
+        flex-direction: column;
+    }
+}
+
+/* input container */
+div.nbinput.container {
+    padding-top: 5px;
+}
+
+/* last container */
+div.nblast.container {
+    padding-bottom: 5px;
+}
+
+/* input prompt */
+div.nbinput.container div.prompt pre {
+    color: #307FC1;
+}
+
+/* output prompt */
+div.nboutput.container div.prompt pre {
+    color: #BF5B3D;
+}
+
+/* all prompts */
+div.nbinput.container div.prompt,
+div.nboutput.container div.prompt {
+    width: 4.5ex;
+    padding-top: 5px;
+    position: relative;
+    user-select: none;
+}
+
+div.nbinput.container div.prompt > div,
+div.nboutput.container div.prompt > div {
+    position: absolute;
+    right: 0;
+    margin-right: 0.3ex;
+}
+
+@media (max-width: 540px) {
+    div.nbinput.container div.prompt,
+    div.nboutput.container div.prompt {
+        width: unset;
+        text-align: left;
+        padding: 0.4em;
+    }
+    div.nboutput.container div.prompt.empty {
+        padding: 0;
+    }
+
+    div.nbinput.container div.prompt > div,
+    div.nboutput.container div.prompt > div {
+        position: unset;
+    }
+}
+
+/* disable scrollbars on prompts */
+div.nbinput.container div.prompt pre,
+div.nboutput.container div.prompt pre {
+    overflow: hidden;
+}
+
+/* input/output area */
+div.nbinput.container div.input_area,
+div.nboutput.container div.output_area {
+    -webkit-flex: 1;
+    flex: 1;
+    overflow: auto;
+}
+@media (max-width: 540px) {
+    div.nbinput.container div.input_area,
+    div.nboutput.container div.output_area {
+        width: 100%;
+    }
+}
+
+/* input area */
+div.nbinput.container div.input_area {
+    border: 1px solid #e0e0e0;
+    border-radius: 2px;
+    /*background: #f5f5f5;*/
+}
+
+/* override MathJax center alignment in output cells */
+div.nboutput.container div[class*=MathJax] {
+    text-align: left !important;
+}
+
+/* override sphinx.ext.imgmath center alignment in output cells */
+div.nboutput.container div.math p {
+    text-align: left;
+}
+
+/* standard error */
+div.nboutput.container div.output_area.stderr {
+    background: #fdd;
+}
+
+/* ANSI colors */
+.ansi-black-fg { color: #3E424D; }
+.ansi-black-bg { background-color: #3E424D; }
+.ansi-black-intense-fg { color: #282C36; }
+.ansi-black-intense-bg { background-color: #282C36; }
+.ansi-red-fg { color: #E75C58; }
+.ansi-red-bg { background-color: #E75C58; }
+.ansi-red-intense-fg { color: #B22B31; }
+.ansi-red-intense-bg { background-color: #B22B31; }
+.ansi-green-fg { color: #00A250; }
+.ansi-green-bg { background-color: #00A250; }
+.ansi-green-intense-fg { color: #007427; }
+.ansi-green-intense-bg { background-color: #007427; }
+.ansi-yellow-fg { color: #DDB62B; }
+.ansi-yellow-bg { background-color: #DDB62B; }
+.ansi-yellow-intense-fg { color: #B27D12; }
+.ansi-yellow-intense-bg { background-color: #B27D12; }
+.ansi-blue-fg { color: #208FFB; }
+.ansi-blue-bg { background-color: #208FFB; }
+.ansi-blue-intense-fg { color: #0065CA; }
+.ansi-blue-intense-bg { background-color: #0065CA; }
+.ansi-magenta-fg { color: #D160C4; }
+.ansi-magenta-bg { background-color: #D160C4; }
+.ansi-magenta-intense-fg { color: #A03196; }
+.ansi-magenta-intense-bg { background-color: #A03196; }
+.ansi-cyan-fg { color: #60C6C8; }
+.ansi-cyan-bg { background-color: #60C6C8; }
+.ansi-cyan-intense-fg { color: #258F8F; }
+.ansi-cyan-intense-bg { background-color: #258F8F; }
+.ansi-white-fg { color: #C5C1B4; }
+.ansi-white-bg { background-color: #C5C1B4; }
+.ansi-white-intense-fg { color: #A1A6B2; }
+.ansi-white-intense-bg { background-color: #A1A6B2; }
+
+.ansi-default-inverse-fg { color: #FFFFFF; }
+.ansi-default-inverse-bg { background-color: #000000; }
+
+.ansi-bold { font-weight: bold; }
+.ansi-underline { text-decoration: underline; }
+
+
+div.nbinput.container div.input_area div[class*=highlight] > pre,
+div.nboutput.container div.output_area div[class*=highlight] > pre,
+div.nboutput.container div.output_area div[class*=highlight].math,
+div.nboutput.container div.output_area.rendered_html,
+div.nboutput.container div.output_area > div.output_javascript,
+div.nboutput.container div.output_area:not(.rendered_html) > img{
+    padding: 5px;
+    margin: 0;
+}
+
+/* fix copybtn overflow problem in chromium (needed for 'sphinx_copybutton') */
+div.nbinput.container div.input_area > div[class^='highlight'],
+div.nboutput.container div.output_area > div[class^='highlight']{
+    overflow-y: hidden;
+}
+
+/* hide copybtn icon on prompts (needed for 'sphinx_copybutton') */
+.prompt .copybtn {
+    display: none;
+}
+
+/* Some additional styling taken form the Jupyter notebook CSS */
+.jp-RenderedHTMLCommon table,
+div.rendered_html table {
+  border: none;
+  border-collapse: collapse;
+  border-spacing: 0;
+  color: black;
+  font-size: 12px;
+  table-layout: fixed;
+}
+.jp-RenderedHTMLCommon thead,
+div.rendered_html thead {
+  border-bottom: 1px solid black;
+  vertical-align: bottom;
+}
+.jp-RenderedHTMLCommon tr,
+.jp-RenderedHTMLCommon th,
+.jp-RenderedHTMLCommon td,
+div.rendered_html tr,
+div.rendered_html th,
+div.rendered_html td {
+  text-align: right;
+  vertical-align: middle;
+  padding: 0.5em 0.5em;
+  line-height: normal;
+  white-space: normal;
+  max-width: none;
+  border: none;
+}
+.jp-RenderedHTMLCommon th,
+div.rendered_html th {
+  font-weight: bold;
+}
+.jp-RenderedHTMLCommon tbody tr:nth-child(odd),
+div.rendered_html tbody tr:nth-child(odd) {
+  background: #f5f5f5;
+}
+.jp-RenderedHTMLCommon tbody tr:hover,
+div.rendered_html tbody tr:hover {
+  background: rgba(66, 165, 245, 0.2);
+}
+</style>
+<section id="Inferring-the-number-of-components">
+<h1>Inferring the number of components<a class="headerlink" href="#Inferring-the-number-of-components" title="Permalink to this headline">#</a></h1>
+<section id="Load-modules">
+<h2>Load modules<a class="headerlink" href="#Load-modules" title="Permalink to this headline">#</a></h2>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">robustica</span> <span class="kn">import</span> <span class="n">InferComponents</span>
+
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">sklearn.decomposition</span> <span class="kn">import</span> <span class="n">PCA</span>
+
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">seaborn</span> <span class="k">as</span> <span class="nn">sns</span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Load-data-from-Sastry-(2019)">
+<h2>Load data from <a class="reference external" href="https://doi.org/10.1038/s41467-019-13483-w">Sastry (2019)</a><a class="headerlink" href="#Load-data-from-Sastry-(2019)" title="Permalink to this headline">#</a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;https://static-content.springer.com/esm/art%3A10.1038</span><span class="si">%2F</span><span class="s2">s41467-019-13483-w/MediaObjects/41467_2019_13483_MOESM4_ESM.xlsx&quot;</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">ExcelFile</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
+<span class="n">data</span><span class="o">.</span><span class="n">sheet_names</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+[&#39;README&#39;,
+ &#39;Metadata&#39;,
+ &#39;Expression Data&#39;,
+ &#39;S matrix&#39;,
+ &#39;A matrix&#39;,
+ &#39;Media Recipes&#39;,
+ &#39;Gene Information&#39;]
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">data</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="s2">&quot;README&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Sheet Name</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>Experimental Conditions</td>
+      <td>Experimental conditions for each sample in PRE...</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>Expression Data</td>
+      <td>Expression levels of genes (log2 Transcripts p...</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>S matrix</td>
+      <td>I-modulon gene coefficients. Each column is an...</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>A matrix</td>
+      <td>Condition-specific i-modulon activities. Each ...</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>Media Description</td>
+      <td>Recipes for base media and trace element mixtures</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>Gene Information</td>
+      <td>Mapping of b-numbers to gene names/annotations...</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>NaN</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>Metadata Columns</td>
+      <td>Description</td>
+    </tr>
+    <tr>
+      <th>8</th>
+      <td>Sample ID</td>
+      <td>Unique sample identifier for experiment (e.g. ...</td>
+    </tr>
+    <tr>
+      <th>9</th>
+      <td>Study</td>
+      <td>Short 1-2 word description of study where samp...</td>
+    </tr>
+    <tr>
+      <th>10</th>
+      <td>Project ID</td>
+      <td>Identifier for study</td>
+    </tr>
+    <tr>
+      <th>11</th>
+      <td>Condition ID</td>
+      <td>Identifier for unique experimental conditions</td>
+    </tr>
+    <tr>
+      <th>12</th>
+      <td>Replicate #</td>
+      <td>Suffix for sample ID to distinguish between re...</td>
+    </tr>
+    <tr>
+      <th>13</th>
+      <td>Strain Description</td>
+      <td>Describes gene knock-out, mutation knock-in, o...</td>
+    </tr>
+    <tr>
+      <th>14</th>
+      <td>Strain</td>
+      <td>MG1655 or BW25113</td>
+    </tr>
+    <tr>
+      <th>15</th>
+      <td>Base Media</td>
+      <td>Media recipe as described in Media Description...</td>
+    </tr>
+    <tr>
+      <th>16</th>
+      <td>Carbon Source (g/L)</td>
+      <td>Carbon source in g/L</td>
+    </tr>
+    <tr>
+      <th>17</th>
+      <td>Nitrogen Source (g/L)</td>
+      <td>Nitrogen source in g/L</td>
+    </tr>
+    <tr>
+      <th>18</th>
+      <td>Electron Acceptor</td>
+      <td>Aerobic (O2), anaerobic (None), or nitrate (KN...</td>
+    </tr>
+    <tr>
+      <th>19</th>
+      <td>Trace Element Mixture</td>
+      <td>Trace element recipe as described in Media Des...</td>
+    </tr>
+    <tr>
+      <th>20</th>
+      <td>Supplement</td>
+      <td>Additional media supplements in each experimen...</td>
+    </tr>
+    <tr>
+      <th>21</th>
+      <td>Temperature (C)</td>
+      <td>Temperature of growth condition in Celsius</td>
+    </tr>
+    <tr>
+      <th>22</th>
+      <td>pH</td>
+      <td>Neutral (7) or acidic (5.5)</td>
+    </tr>
+    <tr>
+      <th>23</th>
+      <td>Antibiotic</td>
+      <td>Treatment with low concentration Kanamycin for...</td>
+    </tr>
+    <tr>
+      <th>24</th>
+      <td>Culture Type</td>
+      <td>Batch or Chemostat (always exponential growth ...</td>
+    </tr>
+    <tr>
+      <th>25</th>
+      <td>Growth Rate (1/hr)</td>
+      <td>Measured growth rate of strain in media</td>
+    </tr>
+    <tr>
+      <th>26</th>
+      <td>Evolved Sample</td>
+      <td>Whether the strain was from an adaptive labora...</td>
+    </tr>
+    <tr>
+      <th>27</th>
+      <td>Isolate Type</td>
+      <td>Clonal or Population (only applicable to ALE s...</td>
+    </tr>
+    <tr>
+      <th>28</th>
+      <td>Sequencing Machine</td>
+      <td>Type of machine used for sequencing</td>
+    </tr>
+    <tr>
+      <th>29</th>
+      <td>Additional Details</td>
+      <td>Additional information about experiment</td>
+    </tr>
+    <tr>
+      <th>30</th>
+      <td>Biological Replicates</td>
+      <td>Number of biological replicates within study</td>
+    </tr>
+    <tr>
+      <th>31</th>
+      <td>Alignment</td>
+      <td>Percent of reads aligned by bowtie to referenc...</td>
+    </tr>
+    <tr>
+      <th>32</th>
+      <td>DOI</td>
+      <td>Accession number for study</td>
+    </tr>
+    <tr>
+      <th>33</th>
+      <td>GEO</td>
+      <td>GEO Accession ID</td>
+    </tr>
+  </tbody>
+</table>
+</div></div>
+</div>
+</section>
+<section id="Preprocess-data">
+<h2>Preprocess data<a class="headerlink" href="#Preprocess-data" title="Permalink to this headline">#</a></h2>
+<p>Following the article’s methods, we compute the log2FCs with respect to controls</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># get gene expression</span>
+<span class="n">X</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="s2">&quot;Expression Data&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">&quot;log-TPM&quot;</span><span class="p">)</span>
+
+<span class="c1"># get controls</span>
+<span class="n">controls</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">X</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="s2">&quot;control&quot;</span> <span class="ow">in</span> <span class="n">c</span><span class="p">]</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">controls</span><span class="p">)</span>
+
+<span class="c1"># compute log2FCs with respect to controls</span>
+<span class="n">X</span> <span class="o">=</span> <span class="n">X</span> <span class="o">-</span> <span class="n">X</span><span class="p">[</span><span class="n">controls</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+<span class="n">X</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+[&#39;control__wt_glc__1&#39;, &#39;control__wt_glc__2&#39;]
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>control__wt_glc__1</th>
+      <th>control__wt_glc__2</th>
+      <th>fur__wt_dpd__1</th>
+      <th>fur__wt_dpd__2</th>
+      <th>fur__wt_fe__1</th>
+      <th>fur__wt_fe__2</th>
+      <th>fur__delfur_dpd__1</th>
+      <th>fur__delfur_dpd__2</th>
+      <th>fur__delfur_fe2__1</th>
+      <th>fur__delfur_fe2__2</th>
+      <th>acid__wt_ph5__1</th>
+      <th>acid__wt_ph5__2</th>
+      <th>acid__delgadx_ph5__1</th>
+      <th>acid__delgadx_ph5__2</th>
+      <th>acid__delgadw_ph5__1</th>
+      <th>acid__delgadw_ph5__2</th>
+      <th>acid__delgade_ph5__1</th>
+      <th>acid__delgade_ph5__2</th>
+      <th>oxidative__wt_pq__1</th>
+      <th>oxidative__wt_pq__2</th>
+      <th>oxidative__deloxyr_pq__1</th>
+      <th>oxidative__deloxyr_pq__2</th>
+      <th>oxidative__delsoxr_pq__1</th>
+      <th>oxidative__delsoxr_pq__2</th>
+      <th>oxidative__delsoxs_pq__1</th>
+      <th>oxidative__delsoxs_pq__2</th>
+      <th>nac_ntrc__wt_csn__1</th>
+      <th>nac_ntrc__wt_csn__2</th>
+      <th>nac_ntrc__wt_cytd__1</th>
+      <th>nac_ntrc__wt_cytd__2</th>
+      <th>nac_ntrc__wt_gln__1</th>
+      <th>nac_ntrc__wt_gln__2</th>
+      <th>nac_ntrc__bw_delnac_csn__1</th>
+      <th>nac_ntrc__bw_delnac_csn__2</th>
+      <th>nac_ntrc__bw_delnac_cytd__1</th>
+      <th>nac_ntrc__bw_delnac_cytd__2</th>
+      <th>nac_ntrc__bw_delnac_gln__1</th>
+      <th>nac_ntrc__bw_delnac_gln__2</th>
+      <th>nac_ntrc__bw_delnac_nh4__1</th>
+      <th>nac_ntrc__bw_delnac_nh4__2</th>
+      <th>...</th>
+      <th>fps__fps_ptsI_ale3__1</th>
+      <th>fps__fps_ptsI_ale3__2</th>
+      <th>pal__lyx_ale2_f6__1</th>
+      <th>pal__lyx_ale2__1</th>
+      <th>pal__lyx_ale2__2</th>
+      <th>pal__lyx_ale4__1</th>
+      <th>pal__lyx_ale4__2</th>
+      <th>pal__5drib_ale10_f18__1</th>
+      <th>pal__5drib_ale10_f18__2</th>
+      <th>pal__5drib_ale10__1</th>
+      <th>pal__arab_ale14_f9__1</th>
+      <th>pal__arab_ale14_f9__2</th>
+      <th>pal__arab_ale14__1</th>
+      <th>pal__arab_ale14__2</th>
+      <th>pal__arab_ale16__1</th>
+      <th>pal__arab_ale16__2</th>
+      <th>pal__tartr_ale26_f10__1</th>
+      <th>pal__tartr_ale26_f10__2</th>
+      <th>pal__tartr_ale26__1</th>
+      <th>pal__tartr_ale26__2</th>
+      <th>pal__tartr_ale28_f10__1</th>
+      <th>pal__tartr_ale28_f10__2</th>
+      <th>pal__tartr_ale28__1</th>
+      <th>pal__tartr_ale28__2</th>
+      <th>efeU__delmenFentC_citr__1</th>
+      <th>efeU__delmenFentC_citr__2</th>
+      <th>efeU__delmenFentC__1</th>
+      <th>efeU__delmenFentC__2</th>
+      <th>efeU__menFentC_ale39__1</th>
+      <th>efeU__menFentC_ale39__2</th>
+      <th>efeU__menFentC_ale29__1</th>
+      <th>efeU__menFentC_ale29__2</th>
+      <th>efeU__menFentC_ale30__1</th>
+      <th>efeU__menFentC_ale30__2</th>
+      <th>efeU__menFentCubiC_ale36__1</th>
+      <th>efeU__menFentCubiC_ale36__2</th>
+      <th>efeU__menFentCubiC_ale37__1</th>
+      <th>efeU__menFentCubiC_ale37__2</th>
+      <th>efeU__menFentCubiC_ale38__1</th>
+      <th>efeU__menFentCubiC_ale38__2</th>
+    </tr>
+    <tr>
+      <th>log-TPM</th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>b0002</th>
+      <td>-0.061772</td>
+      <td>0.061772</td>
+      <td>0.636527</td>
+      <td>0.819793</td>
+      <td>-0.003615</td>
+      <td>-0.289353</td>
+      <td>-1.092023</td>
+      <td>-0.777289</td>
+      <td>0.161343</td>
+      <td>0.145641</td>
+      <td>-0.119071</td>
+      <td>-0.110208</td>
+      <td>-0.119834</td>
+      <td>-0.249929</td>
+      <td>-0.170032</td>
+      <td>-0.157507</td>
+      <td>0.056637</td>
+      <td>0.126969</td>
+      <td>-3.100216</td>
+      <td>-3.131342</td>
+      <td>-2.023795</td>
+      <td>-2.149554</td>
+      <td>-2.984711</td>
+      <td>-2.969394</td>
+      <td>-3.275657</td>
+      <td>-3.194996</td>
+      <td>0.089418</td>
+      <td>0.125114</td>
+      <td>-1.018795</td>
+      <td>-1.027832</td>
+      <td>-0.847223</td>
+      <td>-0.783328</td>
+      <td>0.281646</td>
+      <td>0.314592</td>
+      <td>-0.140874</td>
+      <td>-0.127610</td>
+      <td>-0.767873</td>
+      <td>-0.795065</td>
+      <td>0.450165</td>
+      <td>0.465124</td>
+      <td>...</td>
+      <td>-1.002889</td>
+      <td>-1.041576</td>
+      <td>-1.441137</td>
+      <td>-0.938109</td>
+      <td>-0.912962</td>
+      <td>-0.938109</td>
+      <td>-0.912962</td>
+      <td>-3.117297</td>
+      <td>-3.060093</td>
+      <td>-2.635028</td>
+      <td>-0.921975</td>
+      <td>-0.759323</td>
+      <td>-0.541732</td>
+      <td>-0.585120</td>
+      <td>-2.023105</td>
+      <td>-2.172182</td>
+      <td>-2.744032</td>
+      <td>-3.578483</td>
+      <td>-2.439898</td>
+      <td>-2.158964</td>
+      <td>-2.842505</td>
+      <td>-3.817478</td>
+      <td>-2.774715</td>
+      <td>-3.092458</td>
+      <td>0.173153</td>
+      <td>0.251183</td>
+      <td>-0.578962</td>
+      <td>-0.434636</td>
+      <td>-0.592134</td>
+      <td>-0.856110</td>
+      <td>-0.797097</td>
+      <td>-0.791859</td>
+      <td>0.080114</td>
+      <td>0.102154</td>
+      <td>0.608180</td>
+      <td>0.657673</td>
+      <td>0.813105</td>
+      <td>0.854813</td>
+      <td>0.427986</td>
+      <td>0.484338</td>
+    </tr>
+    <tr>
+      <th>b0003</th>
+      <td>-0.053742</td>
+      <td>0.053742</td>
+      <td>0.954439</td>
+      <td>1.334385</td>
+      <td>0.307588</td>
+      <td>0.128414</td>
+      <td>-0.872563</td>
+      <td>-0.277893</td>
+      <td>0.428542</td>
+      <td>0.391761</td>
+      <td>0.287202</td>
+      <td>0.362728</td>
+      <td>0.307697</td>
+      <td>0.400402</td>
+      <td>0.309537</td>
+      <td>0.260044</td>
+      <td>0.418749</td>
+      <td>0.494192</td>
+      <td>-2.270702</td>
+      <td>-2.250099</td>
+      <td>-1.469153</td>
+      <td>-1.422126</td>
+      <td>-2.079466</td>
+      <td>-2.186045</td>
+      <td>-2.088128</td>
+      <td>-2.153957</td>
+      <td>-0.010339</td>
+      <td>0.071343</td>
+      <td>-0.856189</td>
+      <td>-0.959230</td>
+      <td>-0.804255</td>
+      <td>-0.717709</td>
+      <td>0.176045</td>
+      <td>0.513432</td>
+      <td>-0.083092</td>
+      <td>-0.029230</td>
+      <td>-0.655933</td>
+      <td>-0.680968</td>
+      <td>0.490329</td>
+      <td>0.568717</td>
+      <td>...</td>
+      <td>-0.904180</td>
+      <td>-0.847871</td>
+      <td>-1.218862</td>
+      <td>-0.760452</td>
+      <td>-0.638258</td>
+      <td>-0.760452</td>
+      <td>-0.638258</td>
+      <td>-2.531969</td>
+      <td>-2.353000</td>
+      <td>-2.170580</td>
+      <td>-0.723489</td>
+      <td>-0.598414</td>
+      <td>-0.451662</td>
+      <td>-0.435296</td>
+      <td>-1.915111</td>
+      <td>-1.894400</td>
+      <td>-2.193731</td>
+      <td>-2.692549</td>
+      <td>-1.954520</td>
+      <td>-1.774417</td>
+      <td>-2.448988</td>
+      <td>-2.825048</td>
+      <td>-2.442953</td>
+      <td>-2.509852</td>
+      <td>0.045521</td>
+      <td>0.153003</td>
+      <td>-0.823835</td>
+      <td>-0.766693</td>
+      <td>-0.114129</td>
+      <td>-0.293120</td>
+      <td>-0.309105</td>
+      <td>-0.352535</td>
+      <td>-0.155074</td>
+      <td>-0.077145</td>
+      <td>0.447030</td>
+      <td>0.439881</td>
+      <td>0.554528</td>
+      <td>0.569030</td>
+      <td>0.154905</td>
+      <td>0.294799</td>
+    </tr>
+    <tr>
+      <th>b0004</th>
+      <td>-0.065095</td>
+      <td>0.065095</td>
+      <td>-0.202697</td>
+      <td>0.119195</td>
+      <td>-0.264995</td>
+      <td>-0.546017</td>
+      <td>-1.918349</td>
+      <td>-1.577736</td>
+      <td>-0.474815</td>
+      <td>-0.495312</td>
+      <td>-0.377931</td>
+      <td>-0.455821</td>
+      <td>-0.419130</td>
+      <td>-0.403719</td>
+      <td>-0.530110</td>
+      <td>-0.438404</td>
+      <td>-0.251625</td>
+      <td>-0.273382</td>
+      <td>-3.035159</td>
+      <td>-2.936996</td>
+      <td>-2.059695</td>
+      <td>-2.067639</td>
+      <td>-2.900563</td>
+      <td>-2.992547</td>
+      <td>-3.000908</td>
+      <td>-2.978825</td>
+      <td>-0.386857</td>
+      <td>-0.283963</td>
+      <td>-1.127038</td>
+      <td>-1.037145</td>
+      <td>-1.067582</td>
+      <td>-0.949621</td>
+      <td>-0.392185</td>
+      <td>-0.507103</td>
+      <td>-0.350306</td>
+      <td>-0.375661</td>
+      <td>-0.864982</td>
+      <td>-0.942486</td>
+      <td>0.351071</td>
+      <td>0.326690</td>
+      <td>...</td>
+      <td>-0.738546</td>
+      <td>-0.695458</td>
+      <td>-1.456153</td>
+      <td>-0.610523</td>
+      <td>-0.469339</td>
+      <td>-0.610523</td>
+      <td>-0.469339</td>
+      <td>-2.692792</td>
+      <td>-2.634547</td>
+      <td>-2.109905</td>
+      <td>-0.829474</td>
+      <td>-0.782205</td>
+      <td>-0.367654</td>
+      <td>-0.359077</td>
+      <td>-1.706871</td>
+      <td>-1.861162</td>
+      <td>-2.310515</td>
+      <td>-2.828067</td>
+      <td>-2.075763</td>
+      <td>-1.808303</td>
+      <td>-2.572733</td>
+      <td>-3.141401</td>
+      <td>-2.427249</td>
+      <td>-2.545980</td>
+      <td>0.112930</td>
+      <td>0.146169</td>
+      <td>-1.042303</td>
+      <td>-1.002770</td>
+      <td>0.119656</td>
+      <td>-0.013646</td>
+      <td>-0.184898</td>
+      <td>-0.225615</td>
+      <td>0.019575</td>
+      <td>0.063986</td>
+      <td>0.483343</td>
+      <td>0.452754</td>
+      <td>0.524828</td>
+      <td>0.581878</td>
+      <td>0.293239</td>
+      <td>0.341040</td>
+    </tr>
+    <tr>
+      <th>b0005</th>
+      <td>0.028802</td>
+      <td>-0.028802</td>
+      <td>-0.865171</td>
+      <td>-0.951179</td>
+      <td>0.428769</td>
+      <td>0.123564</td>
+      <td>-1.660351</td>
+      <td>-1.531147</td>
+      <td>0.240353</td>
+      <td>-0.151132</td>
+      <td>-1.006268</td>
+      <td>-0.962909</td>
+      <td>-1.250731</td>
+      <td>-1.129567</td>
+      <td>-1.337982</td>
+      <td>-1.047291</td>
+      <td>-1.010342</td>
+      <td>-0.926954</td>
+      <td>-2.280136</td>
+      <td>-2.052012</td>
+      <td>-2.686889</td>
+      <td>-1.924999</td>
+      <td>-2.735658</td>
+      <td>-1.885507</td>
+      <td>-2.372721</td>
+      <td>-2.130732</td>
+      <td>-1.322530</td>
+      <td>-0.893744</td>
+      <td>-1.652260</td>
+      <td>-1.657398</td>
+      <td>-1.383885</td>
+      <td>-1.550246</td>
+      <td>-2.176285</td>
+      <td>-1.329813</td>
+      <td>-2.100079</td>
+      <td>-2.194862</td>
+      <td>-2.119768</td>
+      <td>-2.617822</td>
+      <td>-0.391020</td>
+      <td>-0.793846</td>
+      <td>...</td>
+      <td>-0.646042</td>
+      <td>-1.286794</td>
+      <td>-1.479916</td>
+      <td>-0.515253</td>
+      <td>-0.353837</td>
+      <td>-0.515253</td>
+      <td>-0.353837</td>
+      <td>-1.729011</td>
+      <td>-2.108180</td>
+      <td>-1.609399</td>
+      <td>-0.144782</td>
+      <td>-0.072853</td>
+      <td>-0.973835</td>
+      <td>-0.694878</td>
+      <td>-1.741813</td>
+      <td>-0.644298</td>
+      <td>-3.148518</td>
+      <td>-2.056749</td>
+      <td>-1.962995</td>
+      <td>-1.739700</td>
+      <td>-1.854507</td>
+      <td>-2.630160</td>
+      <td>-2.071427</td>
+      <td>-2.401988</td>
+      <td>-0.507563</td>
+      <td>-1.032248</td>
+      <td>-1.974426</td>
+      <td>-2.030287</td>
+      <td>-0.047171</td>
+      <td>-0.035668</td>
+      <td>-0.308221</td>
+      <td>-0.581714</td>
+      <td>0.018820</td>
+      <td>0.004040</td>
+      <td>-1.228763</td>
+      <td>-1.451750</td>
+      <td>-0.839203</td>
+      <td>-0.529349</td>
+      <td>-0.413336</td>
+      <td>-0.478682</td>
+    </tr>
+    <tr>
+      <th>b0006</th>
+      <td>0.009087</td>
+      <td>-0.009087</td>
+      <td>-0.131039</td>
+      <td>-0.124079</td>
+      <td>-0.144870</td>
+      <td>-0.090152</td>
+      <td>-0.219917</td>
+      <td>-0.046648</td>
+      <td>-0.044537</td>
+      <td>-0.089204</td>
+      <td>0.008697</td>
+      <td>0.079952</td>
+      <td>0.231895</td>
+      <td>-0.044377</td>
+      <td>0.007909</td>
+      <td>0.011165</td>
+      <td>0.049538</td>
+      <td>-0.059121</td>
+      <td>0.517943</td>
+      <td>0.682366</td>
+      <td>0.219346</td>
+      <td>0.146077</td>
+      <td>0.368316</td>
+      <td>0.494996</td>
+      <td>0.308631</td>
+      <td>0.283938</td>
+      <td>0.124732</td>
+      <td>0.010949</td>
+      <td>0.053294</td>
+      <td>-0.170317</td>
+      <td>0.022021</td>
+      <td>-0.042202</td>
+      <td>0.155638</td>
+      <td>0.059141</td>
+      <td>0.219759</td>
+      <td>0.135154</td>
+      <td>0.227307</td>
+      <td>0.363139</td>
+      <td>0.182789</td>
+      <td>0.091249</td>
+      <td>...</td>
+      <td>-0.108070</td>
+      <td>-0.084154</td>
+      <td>-0.508448</td>
+      <td>-0.471636</td>
+      <td>-0.686132</td>
+      <td>-0.471636</td>
+      <td>-0.686132</td>
+      <td>-0.493000</td>
+      <td>-0.714645</td>
+      <td>-0.360590</td>
+      <td>-0.330865</td>
+      <td>-0.303729</td>
+      <td>-0.358913</td>
+      <td>-0.426164</td>
+      <td>-0.429936</td>
+      <td>-0.072150</td>
+      <td>-0.216264</td>
+      <td>-0.325674</td>
+      <td>0.111474</td>
+      <td>-0.152703</td>
+      <td>-0.607141</td>
+      <td>-0.733021</td>
+      <td>-0.312246</td>
+      <td>-0.150106</td>
+      <td>0.039327</td>
+      <td>-0.071922</td>
+      <td>0.208156</td>
+      <td>0.265977</td>
+      <td>0.301569</td>
+      <td>0.208948</td>
+      <td>1.464603</td>
+      <td>1.415706</td>
+      <td>1.230831</td>
+      <td>1.165153</td>
+      <td>0.447447</td>
+      <td>0.458852</td>
+      <td>0.421417</td>
+      <td>0.408077</td>
+      <td>1.151066</td>
+      <td>1.198529</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>b4688</th>
+      <td>-0.261325</td>
+      <td>0.261325</td>
+      <td>-1.425581</td>
+      <td>-2.734490</td>
+      <td>0.181893</td>
+      <td>0.514395</td>
+      <td>-1.943947</td>
+      <td>-1.992701</td>
+      <td>0.066037</td>
+      <td>-0.695325</td>
+      <td>-1.918001</td>
+      <td>-1.419926</td>
+      <td>-1.148837</td>
+      <td>-2.734490</td>
+      <td>-1.930740</td>
+      <td>-1.757981</td>
+      <td>-1.936730</td>
+      <td>-1.337666</td>
+      <td>-2.734490</td>
+      <td>-1.119108</td>
+      <td>-1.080696</td>
+      <td>-2.734490</td>
+      <td>-2.734490</td>
+      <td>-1.587937</td>
+      <td>-2.734490</td>
+      <td>-2.734490</td>
+      <td>-0.079057</td>
+      <td>-1.483206</td>
+      <td>-0.029685</td>
+      <td>-1.704843</td>
+      <td>-0.416772</td>
+      <td>-1.516554</td>
+      <td>-2.734490</td>
+      <td>-1.789226</td>
+      <td>-1.816478</td>
+      <td>-1.838884</td>
+      <td>-1.042181</td>
+      <td>-2.734490</td>
+      <td>-2.734490</td>
+      <td>-2.734490</td>
+      <td>...</td>
+      <td>0.096270</td>
+      <td>-0.737839</td>
+      <td>1.703692</td>
+      <td>1.417642</td>
+      <td>1.593875</td>
+      <td>1.417642</td>
+      <td>1.593875</td>
+      <td>1.590146</td>
+      <td>2.184864</td>
+      <td>0.572284</td>
+      <td>-1.179913</td>
+      <td>1.070420</td>
+      <td>1.261393</td>
+      <td>0.480393</td>
+      <td>1.549209</td>
+      <td>0.858727</td>
+      <td>0.224699</td>
+      <td>1.446601</td>
+      <td>0.413893</td>
+      <td>1.591008</td>
+      <td>1.598563</td>
+      <td>2.163015</td>
+      <td>1.989881</td>
+      <td>2.752438</td>
+      <td>-1.810875</td>
+      <td>-0.395323</td>
+      <td>-0.520182</td>
+      <td>-2.734490</td>
+      <td>-1.401208</td>
+      <td>-0.537228</td>
+      <td>-0.885297</td>
+      <td>-0.462485</td>
+      <td>-2.734490</td>
+      <td>-1.451148</td>
+      <td>-1.379069</td>
+      <td>-1.567420</td>
+      <td>-0.999610</td>
+      <td>-1.726577</td>
+      <td>-2.734490</td>
+      <td>-1.189069</td>
+    </tr>
+    <tr>
+      <th>b4693</th>
+      <td>-0.278909</td>
+      <td>0.278909</td>
+      <td>1.361362</td>
+      <td>1.020310</td>
+      <td>0.608108</td>
+      <td>0.988541</td>
+      <td>2.558416</td>
+      <td>2.142724</td>
+      <td>3.120867</td>
+      <td>3.104887</td>
+      <td>0.405030</td>
+      <td>0.685835</td>
+      <td>1.457573</td>
+      <td>1.348098</td>
+      <td>1.337923</td>
+      <td>1.234911</td>
+      <td>1.218025</td>
+      <td>0.892178</td>
+      <td>1.413359</td>
+      <td>1.310343</td>
+      <td>0.823775</td>
+      <td>1.068171</td>
+      <td>0.460099</td>
+      <td>1.504648</td>
+      <td>1.355439</td>
+      <td>1.051034</td>
+      <td>1.329728</td>
+      <td>2.378704</td>
+      <td>0.023554</td>
+      <td>0.560767</td>
+      <td>0.672545</td>
+      <td>0.141506</td>
+      <td>3.699334</td>
+      <td>3.544916</td>
+      <td>1.137478</td>
+      <td>0.840234</td>
+      <td>0.630524</td>
+      <td>0.316304</td>
+      <td>0.474050</td>
+      <td>1.203777</td>
+      <td>...</td>
+      <td>1.631627</td>
+      <td>0.941966</td>
+      <td>1.534998</td>
+      <td>0.389913</td>
+      <td>-0.040205</td>
+      <td>0.389913</td>
+      <td>-0.040205</td>
+      <td>1.159281</td>
+      <td>1.600465</td>
+      <td>2.472951</td>
+      <td>1.580394</td>
+      <td>1.152383</td>
+      <td>2.044777</td>
+      <td>1.877651</td>
+      <td>2.145404</td>
+      <td>1.745289</td>
+      <td>3.530233</td>
+      <td>3.456921</td>
+      <td>2.356969</td>
+      <td>2.269134</td>
+      <td>2.366889</td>
+      <td>1.923685</td>
+      <td>1.920194</td>
+      <td>2.127412</td>
+      <td>0.765683</td>
+      <td>0.691794</td>
+      <td>1.465917</td>
+      <td>1.043780</td>
+      <td>0.403482</td>
+      <td>0.941108</td>
+      <td>-0.374963</td>
+      <td>0.856574</td>
+      <td>-1.147824</td>
+      <td>-0.814089</td>
+      <td>2.054471</td>
+      <td>1.853620</td>
+      <td>1.957717</td>
+      <td>1.943582</td>
+      <td>2.233115</td>
+      <td>2.023755</td>
+    </tr>
+    <tr>
+      <th>b4696_1</th>
+      <td>0.050526</td>
+      <td>-0.050526</td>
+      <td>1.166436</td>
+      <td>1.043373</td>
+      <td>-0.531441</td>
+      <td>-0.581626</td>
+      <td>0.914055</td>
+      <td>0.731165</td>
+      <td>-0.127269</td>
+      <td>-0.164046</td>
+      <td>0.135888</td>
+      <td>0.319517</td>
+      <td>-0.085694</td>
+      <td>0.025206</td>
+      <td>0.453362</td>
+      <td>-0.085729</td>
+      <td>0.488672</td>
+      <td>0.765492</td>
+      <td>1.307346</td>
+      <td>0.729903</td>
+      <td>0.520309</td>
+      <td>0.595249</td>
+      <td>0.362241</td>
+      <td>0.884966</td>
+      <td>0.779456</td>
+      <td>0.893219</td>
+      <td>1.219181</td>
+      <td>1.331174</td>
+      <td>0.362257</td>
+      <td>0.289375</td>
+      <td>0.805420</td>
+      <td>0.950142</td>
+      <td>2.191054</td>
+      <td>2.004094</td>
+      <td>1.166732</td>
+      <td>0.870088</td>
+      <td>0.924527</td>
+      <td>0.955729</td>
+      <td>-0.196971</td>
+      <td>-0.166817</td>
+      <td>...</td>
+      <td>0.279136</td>
+      <td>0.308489</td>
+      <td>0.718207</td>
+      <td>-0.203294</td>
+      <td>-0.498034</td>
+      <td>-0.203294</td>
+      <td>-0.498034</td>
+      <td>1.026396</td>
+      <td>1.036932</td>
+      <td>0.506989</td>
+      <td>0.754204</td>
+      <td>0.162753</td>
+      <td>-0.277410</td>
+      <td>-0.157901</td>
+      <td>0.385690</td>
+      <td>0.501184</td>
+      <td>0.863580</td>
+      <td>1.012774</td>
+      <td>-0.027849</td>
+      <td>0.406034</td>
+      <td>1.003989</td>
+      <td>0.911352</td>
+      <td>0.147789</td>
+      <td>0.266419</td>
+      <td>0.675875</td>
+      <td>0.391372</td>
+      <td>0.967927</td>
+      <td>1.011111</td>
+      <td>0.107204</td>
+      <td>0.128883</td>
+      <td>0.261604</td>
+      <td>0.278426</td>
+      <td>0.201089</td>
+      <td>-0.017780</td>
+      <td>0.138178</td>
+      <td>0.122287</td>
+      <td>0.504402</td>
+      <td>0.425213</td>
+      <td>0.629383</td>
+      <td>0.805945</td>
+    </tr>
+    <tr>
+      <th>b4696_2</th>
+      <td>-0.031653</td>
+      <td>0.031653</td>
+      <td>0.785573</td>
+      <td>0.881353</td>
+      <td>-0.477271</td>
+      <td>-0.916095</td>
+      <td>0.837603</td>
+      <td>0.801393</td>
+      <td>-0.071710</td>
+      <td>-0.000540</td>
+      <td>0.159629</td>
+      <td>0.145455</td>
+      <td>-0.212146</td>
+      <td>-0.079741</td>
+      <td>-0.090604</td>
+      <td>-0.456976</td>
+      <td>0.104482</td>
+      <td>0.487817</td>
+      <td>1.109385</td>
+      <td>0.207744</td>
+      <td>0.491380</td>
+      <td>0.110582</td>
+      <td>0.168309</td>
+      <td>0.441296</td>
+      <td>0.507584</td>
+      <td>0.434872</td>
+      <td>1.274418</td>
+      <td>1.062962</td>
+      <td>0.110243</td>
+      <td>0.088111</td>
+      <td>0.462610</td>
+      <td>0.579485</td>
+      <td>2.197014</td>
+      <td>2.305253</td>
+      <td>1.086942</td>
+      <td>0.864587</td>
+      <td>0.774668</td>
+      <td>0.915933</td>
+      <td>-0.042572</td>
+      <td>0.503718</td>
+      <td>...</td>
+      <td>0.092492</td>
+      <td>-0.087130</td>
+      <td>0.931458</td>
+      <td>-0.047996</td>
+      <td>0.156690</td>
+      <td>-0.047996</td>
+      <td>0.156690</td>
+      <td>1.578974</td>
+      <td>1.872893</td>
+      <td>1.213779</td>
+      <td>0.834912</td>
+      <td>1.082886</td>
+      <td>-0.409031</td>
+      <td>-0.282746</td>
+      <td>0.476345</td>
+      <td>0.881140</td>
+      <td>1.142348</td>
+      <td>1.390498</td>
+      <td>1.000431</td>
+      <td>0.501084</td>
+      <td>1.131029</td>
+      <td>1.363149</td>
+      <td>0.199714</td>
+      <td>0.496323</td>
+      <td>0.272886</td>
+      <td>-0.089399</td>
+      <td>0.632032</td>
+      <td>0.599022</td>
+      <td>0.006122</td>
+      <td>0.399972</td>
+      <td>-0.499371</td>
+      <td>0.398783</td>
+      <td>0.096609</td>
+      <td>-0.103446</td>
+      <td>-0.519098</td>
+      <td>0.615363</td>
+      <td>0.343959</td>
+      <td>0.580288</td>
+      <td>0.366905</td>
+      <td>0.702608</td>
+    </tr>
+    <tr>
+      <th>b4705</th>
+      <td>0.724324</td>
+      <td>-0.724324</td>
+      <td>-4.350151</td>
+      <td>-4.317498</td>
+      <td>-0.747489</td>
+      <td>-1.257045</td>
+      <td>-3.308337</td>
+      <td>-4.421970</td>
+      <td>-2.679693</td>
+      <td>-1.872713</td>
+      <td>-2.926207</td>
+      <td>-4.345036</td>
+      <td>-5.468290</td>
+      <td>-3.467796</td>
+      <td>-3.718507</td>
+      <td>-5.468290</td>
+      <td>-4.350542</td>
+      <td>-3.180811</td>
+      <td>-4.064446</td>
+      <td>-3.373874</td>
+      <td>-4.034920</td>
+      <td>-3.507086</td>
+      <td>-3.774429</td>
+      <td>-2.709044</td>
+      <td>-5.468290</td>
+      <td>-2.426445</td>
+      <td>0.666998</td>
+      <td>0.963281</td>
+      <td>0.680904</td>
+      <td>0.142353</td>
+      <td>0.304670</td>
+      <td>0.579246</td>
+      <td>-4.037316</td>
+      <td>-2.409430</td>
+      <td>-4.199538</td>
+      <td>-4.227432</td>
+      <td>-5.468290</td>
+      <td>-5.468290</td>
+      <td>-5.468290</td>
+      <td>-5.468290</td>
+      <td>...</td>
+      <td>-2.482645</td>
+      <td>-2.078957</td>
+      <td>1.727766</td>
+      <td>0.458300</td>
+      <td>-0.221445</td>
+      <td>0.458300</td>
+      <td>-0.221445</td>
+      <td>1.352523</td>
+      <td>1.698281</td>
+      <td>0.618235</td>
+      <td>0.630656</td>
+      <td>-0.639628</td>
+      <td>-0.398616</td>
+      <td>-1.647769</td>
+      <td>-0.548048</td>
+      <td>0.074082</td>
+      <td>-0.010337</td>
+      <td>1.216112</td>
+      <td>0.443675</td>
+      <td>-1.211903</td>
+      <td>1.879401</td>
+      <td>1.790530</td>
+      <td>0.375350</td>
+      <td>1.112844</td>
+      <td>-2.449315</td>
+      <td>-3.392124</td>
+      <td>-2.709361</td>
+      <td>-2.394939</td>
+      <td>-5.468290</td>
+      <td>-2.727889</td>
+      <td>-1.968530</td>
+      <td>-1.365300</td>
+      <td>-5.468290</td>
+      <td>-2.997169</td>
+      <td>-3.673367</td>
+      <td>-3.161608</td>
+      <td>-3.959910</td>
+      <td>-4.088644</td>
+      <td>-5.468290</td>
+      <td>-5.468290</td>
+    </tr>
+  </tbody>
+</table>
+<p>3923 rows × 278 columns</p>
+</div></div>
+</div>
+</section>
+<section id="Using-PCA-to-select-the-number-of-components-for-ICA">
+<h2>Using PCA to select the number of components for ICA<a class="headerlink" href="#Using-PCA-to-select-the-number-of-components-for-ICA" title="Permalink to this headline">#</a></h2>
+<p>By default, the <a class="reference external" href="https://doi.org/10.1109/NNSP.2003.1318025">FastICA</a> algorithm whitens the data before calculating independent components to accelerate convergence. In other words, it performs PCA to compress the data into the number of components that we desire. Hence, PCA can be very helpful at guessing the number of components that we aim for.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># how many components explain a % of variance</span>
+<span class="n">pca</span> <span class="o">=</span> <span class="n">PCA</span><span class="p">()</span>
+<span class="n">pca</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">7</span><span class="p">,</span> <span class="mi">7</span><span class="p">))</span>
+<span class="n">sns</span><span class="o">.</span><span class="n">scatterplot</span><span class="p">(</span>
+    <span class="n">x</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">pca</span><span class="o">.</span><span class="n">n_components_</span><span class="p">),</span> <span class="n">y</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">pca</span><span class="o">.</span><span class="n">explained_variance_ratio_</span><span class="p">)</span>
+<span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Principal Component&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Cumulative Explained Variance Ratio&quot;</span><span class="p">)</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/infer_components_10_0.png" src="_images/infer_components_10_0.png" />
+</div>
+</div>
+<p>In this case, we would only need less than 50 components to explain 90% of the variance of the dataset.</p>
+<p>To do exactly this in a single call -i.e. getting the number of components that explain a certain % of the variance- we can use <code class="docutils literal notranslate"><span class="pre">robustica.InferComponents</span></code>.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">InferComponents</span><span class="p">(</span><span class="mf">0.9</span><span class="p">)</span><span class="o">.</span><span class="n">fit_predict</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+36
+</pre></div></div>
+</div>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          <a class="prev-page" href="customize_clustering.html">
+              <svg><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Using a custom clustering class</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2022, Miquel Anglada Girotto
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            <div class="icons">
+              
+            </div>
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            Contents
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Inferring the number of components</a><ul>
+<li><a class="reference internal" href="#Load-modules">Load modules</a></li>
+<li><a class="reference internal" href="#Load-data-from-Sastry-(2019)">Load data from Sastry (2019)</a></li>
+<li><a class="reference internal" href="#Preprocess-data">Preprocess data</a></li>
+<li><a class="reference internal" href="#Using-PCA-to-select-the-number-of-components-for-ICA">Using PCA to select the number of components for ICA</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/scripts/furo.js"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["\\(", "\\)"]], "displayMath": [["\\[", "\\]"]], "processRefs": false, "processEnvironments": false}})</script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    </body>
+</html>
