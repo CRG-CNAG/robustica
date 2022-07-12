@@ -24,6 +24,14 @@ def make_sampledata(nrow, ncol, seed=None):
     -------
     sampledata : np.array of shape (nrow, ncol)
         Resulting random sample dataset.
+        
+    Example
+    -------
+    .. code-block:: python
+
+        from robustica.examples import make_sampledata
+        X = make_sampledata(ncol=300, nrow=2000, seed=123)
+        
     """
     np.random.seed(seed=seed)
     sampledata = np.random.rand(nrow, ncol)

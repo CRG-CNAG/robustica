@@ -84,7 +84,7 @@ class InferComponents:
     random_state : int, RandomState instance or None, default=None
         Used when the 'arpack' or 'randomized' solvers are used. Pass an int
         for reproducible results across multiple function calls.
-        See :term:`Glossary <random_state>`.
+        See See `Glossary <https://scikit-learn.org/stable/glossary.html#term-random_state>`_.
         .. versionadded:: 0.18.0
     
     Attributes
@@ -100,12 +100,14 @@ class InferComponents:
     
     Examples
     --------
-    from robustica.examples import make_sampledata
-    from robustica import InferComponents
+    .. code-block:: python
     
-    X = make_sampledata(200, 50)
-    ncomp = InferComponents().fit_predict(X)
-    ncomp
+        from robustica.examples import make_sampledata
+        from robustica import InferComponents
+
+        X = make_sampledata(200, 50)
+        ncomp = InferComponents().fit_predict(X)
+        ncomp
     """
 
     def __init__(

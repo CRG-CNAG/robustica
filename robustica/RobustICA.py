@@ -18,27 +18,28 @@ import time
 
 
 def abs_pearson_dist(X):
-    """
-    Compute Pearson dissimilarity between columns.
+    """Compute Pearson dissimilarity between columns.
     
     Parameters
     ----------
-    X : np.array of shape (n_features, n_samples)
+    X: np.array of shape (n_features, n_samples)
         Input data.
         
     Returns
     -------
-    D : np.array of shape (n_samples, n_samples)
+    D: np.array of shape (n_samples, n_samples)
         Dissimilarity matrix.
         
     Examples
     --------
-    from robustica import abs_pearson_dist
-    from robustica.examples import make_sampledata
+    .. code-block:: python
     
-    X = make_sampledata(15, 5)
-    D = abs_pearson_dist(X)
-    D.shape
+        from robustica import abs_pearson_dist
+        from robustica.examples import make_sampledata
+
+        X = make_sampledata(15, 5)
+        D = abs_pearson_dist(X)
+        D.shape
     """
     D = np.clip((1 - np.abs(np.corrcoef(X.T))), 0, 1)
     return D
@@ -61,13 +62,15 @@ def corrmats(X, Y):
     
     Examples
     --------
-    from robustica import corrmats
-    from robustica.examples import make_sampledata
+    .. code-block:: python
+    
+        from robustica import corrmats
+        from robustica.examples import make_sampledata
 
-    X = make_sampledata(15, 5)
-    Y = make_sampledata(20, 5)
-    r = corrmats(X, Y)
-    r.shape
+        X = make_sampledata(15, 5)
+        Y = make_sampledata(20, 5)
+        r = corrmats(X, Y)
+        r.shape
     """
     assert X.shape[1] == Y.shape[1]
 
@@ -106,13 +109,15 @@ def compute_iq(X, labels, precomputed=False):
     
     Examples
     --------
-    from robustica import compute_iq
-    from robustica.examples import make_sampledata
+    .. code-block:: python
     
-    X = make_sampledata(5, 15)
-    labels = [1,1,2,1,2]
-    df = compute_iq(X, labels)
-    df
+        from robustica import compute_iq
+        from robustica.examples import make_sampledata
+
+        X = make_sampledata(5, 15)
+        labels = [1,1,2,1,2]
+        df = compute_iq(X, labels)
+        df
     """
     # is X already a correlation matrix?
     if precomputed:
@@ -140,7 +145,7 @@ class RobustICA:
     r"""
     Class to perform robust Independent Component Analysis (ICA) using different
     methods to cluster together the independent components computed via 
-    `sklearn.decomposition.FastICA`. 
+    `sklearn.decomposition.FastICA <https://scikit-learn.org/stable/modules/generated/sklearn.decomposition.FastICA.html>`_. 
     
     By default, it carries out the *Icasso* algorithm
     using aglomerative clustering with average linkage and a precomputed Pearson
@@ -155,8 +160,7 @@ class RobustICA:
                 2.2.1) (Optional) Infer and correct component signs across runs
                 2.2.2) (Optional) Reduce the feature space with PCA
             2.3) Cluster components across all S runs
-            2.4) Use clustering labels to compute the centroid of each cluster,
-                 i.e. the robust component in both S and A.
+            2.4) Use clustering labels to compute the centroid of each cluster, i.e. the robust component in both S and A.
             
     Parameters
     ----------
@@ -198,7 +202,7 @@ class RobustICA:
         Used to initialize ``w_init`` when not specified, with a
         normal distribution. Pass an int, for reproducible results
         across multiple function calls.
-        See :term:`Glossary <random_state>`.
+        See `Glossary <https://scikit-learn.org/stable/glossary.html#term-random_state>`_.
     
     robust_runs : int, default=100
         Number of times to run FastICA.
@@ -288,12 +292,14 @@ class RobustICA:
     
     Examples
     --------
-    from robustica import RobustICA
-    from robustica.examples import make_sampledata
+    .. code-block:: python
     
-    X = make_sampledata(200,50)
-    rica = RobustICA(n_components=10)
-    S, A = rica.fit_transform(X)
+        from robustica import RobustICA
+        from robustica.examples import make_sampledata
+
+        X = make_sampledata(200,50)
+        rica = RobustICA(n_components=10)
+        S, A = rica.fit_transform(X)
     
     Notes
     -----
