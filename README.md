@@ -53,7 +53,38 @@ from robustica.examples import make_sampledata
 X = make_sampledata(ncol=300, nrow=2000, seed=123)
 
 rica = RobustICA(n_components=10)
+# note that by default, we use DBSCAN algorithm and the number of components can be smaller
+# than the number of components defined.
 S, A = rica.fit_transform(X)
+
+# source matrix (nrow x n_components)
+print(S.shape)
+print(S)
+```
+```shell
+(2000, 3) 
+[[ 0.00975714  0.00619138  0.00502649]
+ [-0.0021527  -0.0376857   0.0117938 ]
+ [ 0.00046302  0.01712561  0.00518039]
+ ...
+ [ 0.00128344 -0.00767099  0.0047334 ]
+ [ 0.00644422 -0.00498327  0.01325542]
+ [ 0.0017873  -0.01739889 -0.00445954]]
+```
+```python
+# mixing matrix (ncol x n_components)
+print(A.shape)
+print(A)
+```
+```shell
+(300, 3)
+[[-1.79503194e-02 -1.05611924e+00  5.36688700e-01]
+ [ 1.03342514e-01  7.43471382e-02  4.90472157e-01]
+ [ 4.89753256e-01 -1.11300905e+00 -7.55809647e-01]
+ ...
+ [ 4.30468472e-01 -4.87992838e-01 -7.77965512e-01]
+ [ 3.44078031e-02  4.09029805e-01 -7.29076312e-01]
+ [ 2.15557427e-02  2.89301273e-01 -2.96690459e-01]]
 ```
 
 ## Tutorials
