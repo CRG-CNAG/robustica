@@ -105,6 +105,9 @@ Please, report any issues that you experience through this repository's ["Issues
 
 `robustica` is distributed under a BSD 3-Clause License (see [LICENSE](https://github.com/CRG-CNAG/robustica/blob/main/LICENSE)).
 
+## Citation
+*Anglada-Girotto, M., Miravet-Verde, S., Serrano, L., Head, S. A.*. "*robustica*: customizable robust independent component analysis". BMC Bioinformatics 23, 519 (2022). DOI: https://doi.org/10.1186/s12859-022-05043-9
+
 ## References
 - *Himberg, J., & Hyvarinen, A.* "Icasso: software for investigating the reliability of ICA estimates by clustering and visualization". IEEE XIII Workshop on Neural Networks for Signal Processing (2003). DOI: https://doi.org/10.1109/NNSP.2003.1318025
 - *Sastry, Anand V., et al.* "The Escherichia coli transcriptome mostly consists of independently regulated modules." Nature communications 10.1 (2019): 1-14. DOI: https://doi.org/10.1038/s41467-019-13483-w
