@@ -333,6 +333,7 @@ class RobustICA:
         robust_method="DBSCAN",
         robust_kws={},
         robust_precompdist_func="abs_pearson_dist",
+        verbose=True
     ):
 
         # init parameters
@@ -354,7 +355,8 @@ class RobustICA:
         self.robust_kws = robust_kws
         self.robust_dimreduce = robust_dimreduce
         self.robust_precompdist_func = robust_precompdist_func
-
+        self.verbose = verbose
+        
         # init FastICA
         self.ica = FastICA(
             n_components=self.n_components,
@@ -416,7 +418,8 @@ class RobustICA:
                 np.isin(["n_clusters", "min_samples"], list(self.robust_kws.keys()))
             )
         ):
-            print('Setting clustering defaults:', clustering_defaults[self.robust_method])
+            if self.verbose:
+                print('Setting clustering defaults:', clustering_defaults[self.robust_method])
             self.robust_kws = {
                 **self.robust_kws,
                 **clustering_defaults[self.robust_method],
@@ -483,12 +486,13 @@ class RobustICA:
             Time to execute every run of ICA for robust_runs times. Dictionary 
             structured as {run : seconds}.            
         """
-
-        print("Running FastICA multiple times...")
+        
+        if self.verbose:
+            print("Running FastICA multiple times...")
         # iterate
         result = Parallel(n_jobs=self.n_jobs)(
             delayed(self._run_ica)(args)
-            for args in tqdm([X for it in range(self.robust_runs)])
+            for args in tqdm([X for it in range(self.robust_runs)], disable=(not self.verbose))
         )
 
         # prepare output
@@ -700,7 +704,8 @@ class RobustICA:
 
         ## infer signs of components across ICA runs
         if self.robust_infer_signs:
-            print("Inferring sign of components...")
+            if self.verbose:
+                print("Inferring sign of components...")
             signs = self._infer_components_signs(
                 S_all, self.n_components, self.robust_runs
             )
@@ -711,7 +716,8 @@ class RobustICA:
 
         ## compress feature space
         if self.robust_dimreduce != False:
-            print("Reducing dimensions...")
+            if self.verbose:
+                print("Reducing dimensions...")
             Y = self.dimreduce.fit_transform(Y.T).T
 
         ## precompute distance matrix
@@ -720,16 +726,19 @@ class RobustICA:
         ]
         if contains_precomputed and (self.robust_precompdist_func is not None):
             # then, we want to use our precompdist_func
-            print("Precomputing distance matrix...")
+            if self.verbose:
+                print("Precomputing distance matrix...")
             Y = self.robust_precompdist_func(Y)
 
         ## cluster
-        print("Clustering...")
+        if self.verbose:
+            print("Clustering...")
         self.clustering.fit(Y.T)
         labels = self.clustering.labels_
 
         ## compute robust components
-        print("Computing centroids...")
+        if self.verbose:
+            print("Computing centroids...")
         S, A, S_std, A_std, clustering_stats, orientation = self._compute_centroids(
             S_all * signs, A_all * signs, labels
         )
@@ -870,7 +879,8 @@ class RobustICA:
         """
 
         # prep
-        print("Computing Silhouettes...")
+        if self.verbose:
+            print("Computing Silhouettes...")
         if metric == "precomputed":
             Y = S_all
         else:
@@ -882,7 +892,8 @@ class RobustICA:
         )
 
         # Iq of components
-        print("Computing Iq...")
+        if self.verbose:
+            print("Computing Iq...")
         if metric == "precomputed":
             self.clustering.iq_scores_ = compute_iq(Y, labels, precomputed=True)
         else:
