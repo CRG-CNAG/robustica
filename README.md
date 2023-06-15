@@ -38,7 +38,7 @@ In brackets, versions of packages used to revelop `robustica`.
 ```shell
 pip install robustica
 ```
-### local
+### local (latest version)
 ```shell
 git clone https://github.com/MiqG/robustica.git
 cd robustica
