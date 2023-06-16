@@ -40,7 +40,7 @@ pip install robustica
 ```
 ### local (latest version)
 ```shell
-git clone https://github.com/MiqG/robustica.git
+git clone https://github.com/CRG-CNAG/robustica
 cd robustica
 pip install -e .
 ```
