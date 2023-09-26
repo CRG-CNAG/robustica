@@ -281,9 +281,6 @@ class RobustICA:
         Array of positive or negative ones used to orient labeled components
         after clustering so that largest weights face positive.
     
-    ica : `sklearn.decomposition.FastICA`
-        Instance used to compute independent components multiple times.
-        
     clustering : class instance
         Instance used to cluster components in S_all across ICA runs. The clustering
         labels can be found in the attribute `self.clustering.labels_`. 
@@ -357,19 +354,15 @@ class RobustICA:
         self.robust_precompdist_func = robust_precompdist_func
         self.verbose = verbose
         
-        # init FastICA
-        self.ica = FastICA(
-            n_components=self.n_components,
-            algorithm=self.algorithm,
-            whiten=self.whiten,
-            fun=self.fun,
-            fun_args=self.fun_args,
-            max_iter=self.max_iter,
-            tol=self.tol,
-            w_init=self.w_init,
-            random_state=self.random_state,
-        )
-
+        # reproducibility: generate random state for each iteration
+        if self.random_state is not None:
+            if isinstance(self.random_state, int): 
+                rng = np.random.RandomState(self.random_state)
+                
+            self.random_states = rng.randint(0, self.robust_runs*100, size=self.robust_runs)
+        else:
+            self.random_states = [None for it in range(self.robust_runs)]
+        
         # init robust procedure
         ## dimension reduction (PCA) before clustering
         if self.robust_dimreduce:
@@ -441,7 +434,7 @@ class RobustICA:
         else:
             self.clustering_class = self.robust_method
 
-    def _run_ica(self, X):
+    def _run_ica(self, X, random_state):
         """
         Execute and instance of `sklearn.decomposition.FastICA` once.
         
@@ -458,8 +451,20 @@ class RobustICA:
         """
 
         start_time = time.time()
-        S = self.ica.fit_transform(X)
-        A = self.ica.mixing_
+        # init FastICA
+        ica = FastICA(
+            n_components=self.n_components,
+            algorithm=self.algorithm,
+            whiten=self.whiten,
+            fun=self.fun,
+            fun_args=self.fun_args,
+            max_iter=self.max_iter,
+            tol=self.tol,
+            w_init=self.w_init,
+            random_state=random_state,
+        )
+        S = ica.fit_transform(X)
+        A = ica.mixing_
         seconds = time.time() - start_time
         output = {"S": S, "A": A, "time": seconds}
         return output
@@ -489,10 +494,11 @@ class RobustICA:
         
         if self.verbose:
             print("Running FastICA multiple times...")
+            
         # iterate
         result = Parallel(n_jobs=self.n_jobs)(
-            delayed(self._run_ica)(args)
-            for args in tqdm([X for it in range(self.robust_runs)], disable=(not self.verbose))
+            delayed(self._run_ica)(X, random_state)
+            for random_state in tqdm(self.random_states, disable=(not self.verbose))
         )
 
         # prepare output
