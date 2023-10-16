@@ -6,7 +6,7 @@ long_description = (this_directory / "README.md").read_text()
 
 setup(
     name="robustica",
-    version="0.1.2",
+    version="0.1.3",
     packages=["robustica"],
     python_requires=">=3.8",
     package_data={"": ["LICENSE", "*.md","*.ipynb","*.yml"]},
