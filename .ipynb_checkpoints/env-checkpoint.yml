@@ -1,0 +1,13 @@
+name: robustica
+channels:
+    - bioconda
+    - conda-forge
+    - anaconda
+dependencies:
+    - numpy
+    - pandas
+    - scipy
+    - scikit-learn
+    - sckikit-learn-extra
+    - joblib
+    - tqdm
