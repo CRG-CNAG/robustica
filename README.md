@@ -24,7 +24,7 @@ This package contains 3 modules:
 A more user-friendly documentation can be found at https://crg-cnag.github.io/robustica/.
 
 ## Requirements
-In brackets, versions of packages used to revelop `robustica`.
+In brackets, versions of packages used to develop `robustica`.
 - `numpy` (1.19.2)
 - `pandas` (1.1.2)
 - `scipy` (1.6.2)
@@ -34,6 +34,11 @@ In brackets, versions of packages used to revelop `robustica`.
 - `tqdm` (4.59.0)
 
 ## Installation
+### [required if numpy>2.0] `scikit-learn-extra` incompatibility
+Install a forked version first to avoid incompatibility with the newest `numpy` (see [#6](https://github.com/CRG-CNAG/robustica/issues/6) for more info on this).
+```shell
+pip install git+https://github.com/TimotheeMathieu/scikit-learn-extra
+```
 ### pip
 ```shell
 pip install robustica
