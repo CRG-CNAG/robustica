@@ -15,10 +15,12 @@ setup(
         "pandas",
         "scipy",
         "scikit-learn",
-        "scikit-learn-extra",
         "joblib",
         "tqdm",
     ],
+    extras_require={
+        "extra": ["scikit-learn-extra"]
+    },
     author="Miquel Anglada Girotto",
     author_email="miquel.anglada@crg.eu",
     description="Fully cumstomizable robust Independent Components Analysis (ICA)",

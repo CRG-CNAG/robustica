@@ -29,13 +29,13 @@ In brackets, versions of packages used to develop `robustica`.
 - `pandas` (1.1.2)
 - `scipy` (1.6.2)
 - `scikit-learn` (0.23.2)
-- `scikit-learn-extra` (0.2.0)
 - `joblib` (1.0.1)
 - `tqdm` (4.59.0)
+- (optional) `scikit-learn-extra` (0.2.0): required only for clustering algorithms KMedoids and CommonNNClustering
 
 ## Installation
-### [required if numpy>2.0] `scikit-learn-extra` incompatibility
-Install a forked version first to avoid incompatibility with the newest `numpy` (see [#6](https://github.com/CRG-CNAG/robustica/issues/6) for more info on this).
+### [optional] `scikit-learn-extra` incompatibility
+To use the clustering algorithms KMedoids and CommonNNClustering, install a forked version first to avoid incompatibility with the newest `numpy` (see [#6](https://github.com/CRG-CNAG/robustica/issues/6) for more info on this).
 ```shell
 pip install git+https://github.com/TimotheeMathieu/scikit-learn-extra
 ```

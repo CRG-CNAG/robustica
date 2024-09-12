@@ -12,11 +12,36 @@ from sklearn.decomposition import PCA, FastICA
 from sklearn.metrics import silhouette_samples
 from joblib import Parallel, delayed
 from tqdm import tqdm
-from sklearn.cluster import *
-from sklearn_extra.cluster import *
+from sklearn.cluster import (
+    AgglomerativeClustering,
+    AffinityPropagation,
+    Birch,
+    DBSCAN,
+    FeatureAgglomeration,
+    KMeans,
+    MiniBatchKMeans,
+    MeanShift,
+    OPTICS,
+    SpectralClustering
+)
 import time
 
+def optional_import_sklearn_extra(method):
+    if method in ["KMedoids", "CommonNNClustering"]:
+        try:
+            from sklearn_extra.cluster import KMedoids, CommonNNClustering
+            return locals()[method]
+        except ImportError:
+            raise ImportError(
+                f"To use {method}, you need to install 'scikit-learn-extra'. "
+                f"Install it using `pip install scikit-learn-extra`"
+                f"or `pip install git+https://github.com/TimotheeMathieu/scikit-learn-extra`"
+                f"if you have numpy>=2 installed."
+            )
+    else:
+        raise ValueError(f"Clustering method {method} is not available.")
 
+        
 def abs_pearson_dist(X):
     """Compute Pearson dissimilarity between columns.
     
@@ -172,7 +197,9 @@ class RobustICA:
     
     whiten : bool, default=True
         If whiten is false, the data is already considered to be
-        whitened, and no whitening is performed.
+        whitened, and no whitening is performed. **WARNING**: if 
+        you use scikit-learn>1.3 defaults were set 
+        whiten='arbitrary-variance' to maintain the behavior.
     
     fun : {'logcosh', 'exp', 'cube'} or callable, default='logcosh'
         The functional form of the G function used in the
@@ -316,7 +343,7 @@ class RobustICA:
         self,
         n_components=None,
         algorithm="parallel",
-        whiten=True,
+        whiten="arbitrary-variance",
         fun="logcosh",
         fun_args=None,
         max_iter=200,
@@ -430,7 +457,10 @@ class RobustICA:
 
     def _prep_clustering_class(self):
         if isinstance(self.robust_method, str):
-            self.clustering_class = eval(self.robust_method)
+            if self.robust_method in ["KMedoids", "CommonNNClustering"]:
+                self.clustering_class = optional_import_sklearn_extra(self.robust_method)
+            else:
+                self.clustering_class = eval(self.robust_method)
         else:
             self.clustering_class = self.robust_method
 
