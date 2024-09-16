@@ -4,8 +4,8 @@
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="InferComponents" href="InferComponents.html" /><link rel="prev" title="robustica" href="index.html" />
 
-    <meta name="generator" content="sphinx-5.3.0, furo 2022.06.21"/>
-        <title>RobustICA - robustica 0.1.3 documentation</title>
+    <meta name="generator" content="sphinx-5.0.2, furo 2022.06.21"/>
+        <title>RobustICA - robustica 0.1.4 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?digest=40978830699223671f4072448e654b5958f38b89" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?digest=30d1aed668e5c3a91c3e3bf6a60b675221979f0e" />
@@ -122,7 +122,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="index.html"><div class="brand">robustica 0.1.3 documentation</div></a>
+      <a href="index.html"><div class="brand">robustica 0.1.4 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -133,7 +133,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
         <div class="visually-hidden">Toggle table of contents sidebar</div>
         <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
       </label>
@@ -145,7 +145,7 @@
       <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
   
   
-  <span class="sidebar-brand-text">robustica 0.1.3 documentation</span>
+  <span class="sidebar-brand-text">robustica 0.1.4 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="search.html" role="search">
   <input class="sidebar-search" placeholder=Search name="q" aria-label="Search">
@@ -191,7 +191,7 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
             <div class="visually-hidden">Toggle table of contents sidebar</div>
             <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
           </label>
@@ -205,7 +205,7 @@
 <dd><p>Compute Pearson dissimilarity between columns.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>X</strong> (<em>np.array</em><em> of </em><em>shape</em><em> (</em><em>n_features</em><em>, </em><em>n_samples</em><em>)</em>) – Input data.</p>
+<dd class="field-odd"><p><strong>X</strong> (<em>np.array of shape</em><em> (</em><em>n_features</em><em>, </em><em>n_samples</em><em>)</em>) – Input data.</p>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p><strong>D</strong> – Dissimilarity matrix.</p>
@@ -233,8 +233,8 @@ Make sure that the number of columns in X and Y is the same.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>X</strong> (<em>np.array</em><em> of </em><em>shape</em><em> (</em><em>n_features_x</em><em>, </em><em>n_samples_x</em><em>)</em>) – </p></li>
-<li><p><strong>Y</strong> (<em>np.array</em><em> of </em><em>shape</em><em> (</em><em>n_features_y</em><em>, </em><em>n_samples_y</em><em>)</em>) – </p></li>
+<li><p><strong>X</strong> (<em>np.array of shape</em><em> (</em><em>n_features_x</em><em>, </em><em>n_samples_x</em><em>)</em>) – </p></li>
+<li><p><strong>Y</strong> (<em>np.array of shape</em><em> (</em><em>n_features_y</em><em>, </em><em>n_samples_y</em><em>)</em>) – </p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -264,7 +264,7 @@ This method requires computing a square correlation matrix.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>X</strong> (<em>np.array</em><em> of </em><em>shape</em><em> (</em><em>n_samples</em><em>, </em><em>n_features</em><em>)</em>) – </p></li>
+<li><p><strong>X</strong> (<em>np.array of shape</em><em> (</em><em>n_samples</em><em>, </em><em>n_features</em><em>)</em>) – </p></li>
 <li><p><strong>labels</strong> (<em>list</em><em> or </em><em>np.array</em>) – Clustering labels indicating to which cluster every observation belongs.</p></li>
 <li><p><strong>precomputed</strong> (<em>bool</em><em>, </em><em>default=False</em>) – Indicates whether X is a square pairwise correlation matrix.</p></li>
 </ul>
@@ -290,7 +290,7 @@ This method requires computing a square correlation matrix.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="robustica.RobustICA">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">robustica.</span></span><span class="sig-name descname"><span class="pre">RobustICA</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_components</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">algorithm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'parallel'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">whiten</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fun</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'logcosh'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fun_args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_iter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">200</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w_init</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">random_state</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_jobs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">robust_runs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">robust_infer_signs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">robust_dimreduce</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">robust_method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'DBSCAN'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">robust_kws</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">robust_precompdist_func</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'abs_pearson_dist'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#robustica.RobustICA" title="Permalink to this definition">#</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">robustica.</span></span><span class="sig-name descname"><span class="pre">RobustICA</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_components</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">algorithm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'parallel'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">whiten</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'arbitrary-variance'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fun</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'logcosh'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fun_args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_iter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">200</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w_init</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">random_state</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_jobs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">robust_runs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">robust_infer_signs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">robust_dimreduce</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">robust_method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'DBSCAN'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">robust_kws</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">robust_precompdist_func</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'abs_pearson_dist'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#robustica.RobustICA" title="Permalink to this definition">#</a></dt>
 <dd><p>Class to perform robust Independent Component Analysis (ICA) using different
 methods to cluster together the independent components computed via
 <a class="reference external" href="https://scikit-learn.org/stable/modules/generated/sklearn.decomposition.FastICA.html">sklearn.decomposition.FastICA</a>.</p>
@@ -322,7 +322,9 @@ dissimilarity matrix.</p>
 <li><p><strong>n_components</strong> (<em>int</em><em>, </em><em>default=None</em>) – Number of components to use. If None is passed, all are used.</p></li>
 <li><p><strong>algorithm</strong> (<em>{'parallel'</em><em>, </em><em>'deflation'}</em><em>, </em><em>default='parallel'</em>) – Apply parallel or deflational algorithm for FastICA.</p></li>
 <li><p><strong>whiten</strong> (<em>bool</em><em>, </em><em>default=True</em>) – If whiten is false, the data is already considered to be
-whitened, and no whitening is performed.</p></li>
+whitened, and no whitening is performed. <strong>WARNING</strong>: if
+you use scikit-learn&gt;1.3 defaults were set
+whiten=’arbitrary-variance’ to maintain the behavior.</p></li>
 <li><p><strong>fun</strong> (<em>{'logcosh'</em><em>, </em><em>'exp'</em><em>, </em><em>'cube'}</em><em> or </em><em>callable</em><em>, </em><em>default='logcosh'</em>) – <p>The functional form of the G function used in the
 approximation to neg-entropy. Could be either ‘logcosh’, ‘exp’,
 or ‘cube’.
@@ -339,7 +341,7 @@ If empty and if fun=’logcosh’, fun_args will take value
 {‘alpha’ : 1.0}.</p></li>
 <li><p><strong>max_iter</strong> (<em>int</em><em>, </em><em>default=200</em>) – Maximum number of iterations during fit.</p></li>
 <li><p><strong>tol</strong> (<em>float</em><em>, </em><em>default=1e-4</em>) – Tolerance on update at each iteration.</p></li>
-<li><p><strong>w_init</strong> (<em>ndarray</em><em> of </em><em>shape</em><em> (</em><em>n_components</em><em>, </em><em>n_components</em><em>)</em><em>, </em><em>default=None</em>) – The mixing matrix to be used to initialize the algorithm.</p></li>
+<li><p><strong>w_init</strong> (<em>ndarray of shape</em><em> (</em><em>n_components</em><em>, </em><em>n_components</em><em>)</em><em>, </em><em>default=None</em>) – The mixing matrix to be used to initialize the algorithm.</p></li>
 <li><p><strong>random_state</strong> (<em>int</em><em>, </em><em>RandomState instance</em><em> or </em><em>None</em><em>, </em><em>default=None</em>) – Used to initialize <code class="docutils literal notranslate"><span class="pre">w_init</span></code> when not specified, with a
 normal distribution. Pass an int, for reproducible results
 across multiple function calls.
@@ -571,42 +573,8 @@ DOI: <a class="reference external" href="https://doi.org/10.1038/s41467-019-1348
         
       </footer>
     </div>
-    <aside class="toc-drawer">
+    <aside class="toc-drawer no-toc">
       
-      
-      <div class="toc-sticky toc-scroll">
-        <div class="toc-title-container">
-          <span class="toc-title">
-            Contents
-          </span>
-        </div>
-        <div class="toc-tree-container">
-          <div class="toc-tree">
-            <ul>
-<li><a class="reference internal" href="#"><code class="docutils literal notranslate"><span class="pre">RobustICA</span></code></a><ul>
-<li><a class="reference internal" href="#robustica.abs_pearson_dist"><code class="docutils literal notranslate"><span class="pre">abs_pearson_dist()</span></code></a></li>
-<li><a class="reference internal" href="#robustica.corrmats"><code class="docutils literal notranslate"><span class="pre">corrmats()</span></code></a></li>
-<li><a class="reference internal" href="#robustica.compute_iq"><code class="docutils literal notranslate"><span class="pre">compute_iq()</span></code></a></li>
-<li><a class="reference internal" href="#robustica.RobustICA"><code class="docutils literal notranslate"><span class="pre">RobustICA</span></code></a><ul>
-<li><a class="reference internal" href="#robustica.RobustICA.S"><code class="docutils literal notranslate"><span class="pre">RobustICA.S</span></code></a></li>
-<li><a class="reference internal" href="#robustica.RobustICA.A"><code class="docutils literal notranslate"><span class="pre">RobustICA.A</span></code></a></li>
-<li><a class="reference internal" href="#robustica.RobustICA.S_std"><code class="docutils literal notranslate"><span class="pre">RobustICA.S_std</span></code></a></li>
-<li><a class="reference internal" href="#robustica.RobustICA.A_std"><code class="docutils literal notranslate"><span class="pre">RobustICA.A_std</span></code></a></li>
-<li><a class="reference internal" href="#robustica.RobustICA.S_all"><code class="docutils literal notranslate"><span class="pre">RobustICA.S_all</span></code></a></li>
-<li><a class="reference internal" href="#robustica.RobustICA.A_all"><code class="docutils literal notranslate"><span class="pre">RobustICA.A_all</span></code></a></li>
-<li><a class="reference internal" href="#robustica.RobustICA.time"><code class="docutils literal notranslate"><span class="pre">RobustICA.time</span></code></a></li>
-<li><a class="reference internal" href="#robustica.RobustICA.signs_"><code class="docutils literal notranslate"><span class="pre">RobustICA.signs_</span></code></a></li>
-<li><a class="reference internal" href="#robustica.RobustICA.orientation_"><code class="docutils literal notranslate"><span class="pre">RobustICA.orientation_</span></code></a></li>
-<li><a class="reference internal" href="#robustica.RobustICA.clustering"><code class="docutils literal notranslate"><span class="pre">RobustICA.clustering</span></code></a></li>
-</ul>
-</li>
-</ul>
-</li>
-</ul>
-
-          </div>
-        </div>
-      </div>
       
       
     </aside>
@@ -616,7 +584,6 @@ DOI: <a class="reference external" href="https://doi.org/10.1038/s41467-019-1348
     <script src="_static/underscore.js"></script>
     <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script src="_static/doctools.js"></script>
-    <script src="_static/sphinx_highlight.js"></script>
     <script src="_static/scripts/furo.js"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     </body>
