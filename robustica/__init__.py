@@ -5,7 +5,7 @@
 # Last Update: 2021-07-24
 #
 
-__version__ = "0.1.3"
+__version__ = "0.1.4"
 
 from .RobustICA import *
 from .InferComponents import *
